@@ -3,6 +3,7 @@
   "version": "0.2.1-beta",
   "description": "Result TS: The type safe result library for Typescript.",
   "main": "./dist/index.js",
+  "type": "module",
   "imodule": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
