@@ -14,7 +14,7 @@
     "pack:test": "pnpm pack && mkdir -p releases && mv *.tgz releases/",
     "pack:install": "pnpm pack && npm install ./result-ts-*.tgz",
     "pack:clean": "rm -f *.tgz && rm -rf releases/",
-    "prepack": "npm run clean:pack && npm run build"
+    "prepack": "pnpm run pack:clean && pnpm run build"
   },
   "keywords": [
     "result",
