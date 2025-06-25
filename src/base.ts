@@ -35,10 +35,23 @@ export const createBaseResult = () => ({
   ): result is Err<E> =>
     result.type === ERR,
 
-  // Basic utilities
   unwrap: <T extends unknown, E extends unknown>(result: Result<T, E>): T => {
     if (result.type === OK) return result.value;
-    throw new Error(`Unwrap failed: ${JSON.stringify(result.error)}`);
+
+    const error = result.error;
+
+    // If it's already an Error, throw it directly
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    // If it's a string, use it as the message
+    if (typeof error === 'string') {
+      throw new Error(error);
+    }
+
+    // For other types, convert safely without JSON.stringify
+    throw new Error(`Unwrap failed: ${String(error)}`);
   },
 
   unwrapOr: <T extends unknown, E extends unknown>(
@@ -365,7 +378,17 @@ export const createBaseResult = () => ({
       if (resultA.type === OK && resultB.type === OK) {
         return { type: OK, value: [resultA.value, resultB.value] };
       }
-      return resultA.type === ERR ? resultA : resultB as Err<E>;
+
+      if (resultA.type === ERR) {
+        return { type: ERR, error: resultA.error };
+      }
+
+      if (resultB.type === ERR) {
+        return { type: ERR, error: resultB.error };
+      }
+
+      // This should never happen, but TypeScript requires it
+      throw new Error("Unreachable: both results cannot be Ok here");
     },
 
     apply: <T extends unknown, U extends unknown, E extends unknown>(
@@ -375,9 +398,19 @@ export const createBaseResult = () => ({
       if (resultFn.type === OK && resultValue.type === OK) {
         return { type: OK, value: resultFn.value(resultValue.value) };
       }
-      // Return first error encountered
-      return resultFn.type === ERR ? resultFn : resultValue as Err<E>;
-    }
+
+      // Handle errors with explicit type checking
+      if (resultFn.type === ERR) {
+        return { type: ERR, error: resultFn.error };
+      }
+
+      if (resultValue.type === ERR) {
+        return { type: ERR, error: resultValue.error };
+      }
+
+      // This should never happen, but TypeScript requires it
+      throw new Error("Unreachable: both results cannot be Ok here");
+    },
   }
 });
 
