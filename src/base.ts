@@ -99,30 +99,27 @@ export const createBaseResult = () => ({
     generator: () => Generator<Result<unknown, E>, T, unknown>
   ): Result<T, E> => {
     const gen = generator();
-
     try {
       let current = gen.next();
-
       while (!current.done) {
         const result = current.value as Result<unknown, E>;
-
         if (result.type === ERR) {
-          // Clean up generator before returning error
           try {
             gen.return(undefined as T);
           } catch {
-            // Ignore cleanup errors
+            // Just ignore cleanup errors - don't try again!
           }
           return { type: ERR, error: result.error };
         }
-
         current = gen.next(result.value);
       }
-
       return { type: OK, value: current.value };
     } catch (error) {
-      // Ensure cleanup if generator throws
-      gen.return(undefined as T);
+      try {
+        gen.return(undefined as T);
+      } catch {
+        // intentionally ignore errors
+      }
       throw error;
     }
   },
@@ -249,27 +246,28 @@ export const createBaseResult = () => ({
       generator: () => AsyncGenerator<Result<unknown, E>, T, unknown>
     ): Promise<Result<T, E>> => {
       const gen = generator();
-
       try {
         let current = await gen.next();
-
         while (!current.done) {
           const result = current.value as Result<unknown, E>;
-
           if (result.type === ERR) {
-            // Clean up async generator before returning error
-            await gen.return(undefined as T);
+            try {
+              await gen.return(undefined as T);
+            } catch {
+              // Just ignore cleanup errors
+            }
             return { type: ERR, error: result.error };
           }
-
           current = await gen.next(result.value);
         }
-
         return { type: OK, value: current.value };
       } catch (error) {
-        // Ensure cleanup if generator throws
-        await gen.return(undefined as T);
-        throw error;
+        try {
+          await gen.return(undefined as T);
+        } catch {
+          // Just ignore cleanup errors
+        }
+        throw error; // This is outside the cleanup try/catch
       }
     },
 
