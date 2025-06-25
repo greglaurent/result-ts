@@ -1,0 +1,21 @@
+{
+  "name": "result-ts",
+  "version": "1.0.0",
+  "description": "Result TS: The type safe result library for Typescript.",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Gregory Laurent",
+  "license": "MIT",
+  "packageManager": "pnpm@10.12.1",
+  "peerDependencies": {
+    "zod": "^3.25.67"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": true
+    }
+  }
+}

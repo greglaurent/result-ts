@@ -1,2 +1,7 @@
-# result-ts
-ResultTS: The Type Safe Result Library for Typescript
+# Result TS
+
+The Type Safe Result Library for Typescript
+
+## License
+
+MIT © [Your Name]
