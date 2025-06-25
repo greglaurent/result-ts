@@ -1,13 +1,10 @@
 {
   "compilerOptions": {
-    "target": "ES2020", // Modern JS features, good browser support
-    "lib": [
-      "ES2020",
-      "DOM"
-    ],
+    "target": "ES2022", // Modern JS features, good browser support
     "module": "ESNext", // Use latest module syntax
-    "moduleResolution": "node", // Node-style module resolution
+    "moduleResolution": "bundler", // Node-style module resolution
     "declaration": true, // Generate .d.ts files
+    "allowImportingTsExtensions": false,
     "declarationMap": true, // Generate .d.ts.map files for debugging
     "outDir": "./dist", // Output directory
     "rootDir": "./src", // Source directory
