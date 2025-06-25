@@ -182,20 +182,24 @@ export const createBaseResult = () => ({
       return { type: OK, value: values };
     },
 
-    oks: <T, E>(
-      results: Array<Result<T, E>>
-    ) => {
-      return results
-        .filter((result): result is Ok<T> => result.type === OK)
-        .map(r => r.value);
+    oks: <T, E>(results: Array<Result<T, E>>) => {
+      const values = [];
+      for (const result of results) {
+        if (result && result.type === OK) {
+          values.push(result.value);
+        }
+      }
+      return values;
     },
 
-    errs: <T, E>(
-      results: Array<Result<T, E>>
-    ) => {
-      return results
-        .filter((result): result is Err<E> => result.type === ERR)
-        .map(r => r.error);
+    errs: <T, E>(results: Array<Result<T, E>>) => {
+      const errors = [];
+      for (const result of results) {
+        if (result && result.type === ERR) {
+          errors.push(result.error);
+        }
+      }
+      return errors;
     },
 
     partition: <T, E>(
