@@ -61,7 +61,7 @@ export const createBaseResult = () => ({
     return result.type === OK ? result.value : defaultValue;
   },
 
-  tryFn: <T>(fn: () => T): Result<T, string> => {
+  handle: <T>(fn: () => T): Result<T, string> => {
     try {
       return { type: OK, value: fn() };
     } catch (error) {
@@ -72,7 +72,7 @@ export const createBaseResult = () => ({
     }
   },
 
-  tryWith: <T, E>(
+  handleWith: <T, E>(
     fn: () => T,
     errorMapper: (error: unknown) => E
   ): Result<T, E> => {
@@ -95,7 +95,7 @@ export const createBaseResult = () => ({
       : handlers.Err(result.error);
   },
 
-  safeTry: <T, E>(
+  safe: <T, E>(
     generator: () => Generator<Result<unknown, E>, T, unknown>
   ): Result<T, E> => {
     const gen = generator();
@@ -355,7 +355,7 @@ export const createBaseResult = () => ({
   },
 
   async: {
-    tryFn: async <T>(fn: () => Promise<T>): Promise<Result<T, string>> => {
+    handle: async <T>(fn: () => Promise<T>): Promise<Result<T, string>> => {
       try {
         const value = await fn();
         return { type: OK, value };
@@ -367,7 +367,7 @@ export const createBaseResult = () => ({
       }
     },
 
-    tryWith: async <T, E>(
+    handleWith: async <T, E>(
       fn: () => Promise<T>,
       errorMapper: (error: unknown) => E
     ): Promise<Result<T, E>> => {
@@ -379,7 +379,7 @@ export const createBaseResult = () => ({
       }
     },
 
-    safeTry: async <T, E>(
+    safeWith: async <T, E>(
       generator: () => AsyncGenerator<Result<unknown, E>, T, unknown>
     ): Promise<Result<T, E>> => {
       const gen = generator();
