@@ -151,6 +151,21 @@ export const createBaseResult = () => ({
     ): Result<U, E> => {
       return result.type === OK ? mapper(result.value) : result;
     },
+
+    // Lightweight pipe function for performance-critical chaining
+    pipe: <T, E>(
+      initialResult: Result<T, E>,
+      ...operations: Array<(value: any) => Result<any, E>>
+    ) => {
+      let current = initialResult;
+
+      for (const operation of operations) {
+        if (current.type === ERR) return current;
+        current = operation(current.value);
+      }
+
+      return current;
+    },
   },
 
   collections: {
