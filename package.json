@@ -10,7 +10,17 @@
     "typecheck": "tsc --noEmit",
     "dev": "tsc --watch"
   },
-  "keywords": [],
+  "keywords": [
+    "result",
+    "rust",
+    "error-handling",
+    "typescript",
+    "zod",
+    "validation",
+    "functional",
+    "modular",
+    "type-safe"
+  ],
   "author": "Gregory Laurent",
   "license": "MIT",
   "packageManager": "pnpm@10.12.1",

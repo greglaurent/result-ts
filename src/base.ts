@@ -69,6 +69,42 @@ export const createBaseResult = () => ({
       return { type: ERR, error: errorMapper(error) };
     }
   },
+  // Pattern matching support
+  match: <T extends unknown, U extends unknown, V extends unknown, E extends unknown>(
+    result: Result<T, E>,
+    handlers: {
+      Ok: (value: T) => U;
+      Err: (error: E) => V;
+    }
+  ): U | V => {
+    return result.type === "Ok"
+      ? handlers.Ok(result.value)
+      : handlers.Err(result.error);
+  },
+
+  // Rust-like ? operator simulation using generators
+  safeTry: <T extends unknown, E extends unknown>(
+    generator: () => Generator<Result<unknown, E>, T, unknown>
+  ): Result<T, E> => {
+    const gen = generator();
+    let current = gen.next();
+
+    while (!current.done) {
+      const result = current.value as Result<unknown, E>;
+
+      if (result.type === "Err") {
+        return result as Result<T, E>;
+      }
+
+      // Pass the Ok value back to the generator
+      current = gen.next(result.value);
+    }
+
+    // Generator completed successfully, return the final value
+    return { type: "Ok" as const, value: current.value };
+  },
+
+  yieldFn: <T extends unknown, E extends unknown>(result: Result<T, E>) => result,
 
   iter: {
     map: <T extends unknown, U extends unknown, E extends unknown>(
@@ -185,6 +221,26 @@ export const createBaseResult = () => ({
         return { type: ERR, error: errorMapper(error) };
       }
     },
+
+    safeTry: async <T extends unknown, E extends unknown>(
+      generator: () => AsyncGenerator<Result<unknown, E>, T, unknown>
+    ): Promise<Result<T, E>> => {
+      const gen = generator();
+      let current = await gen.next();
+
+      while (!current.done) {
+        const result = current.value as Result<unknown, E>;
+
+        if (result.type === "Err") {
+          return result as Result<T, E>;
+        }
+
+        current = await gen.next(result.value);
+      }
+
+      return { type: "Ok" as const, value: current.value };
+    },
+
 
     map: async <T extends unknown, U extends unknown, E extends unknown>(
       promise: Promise<Result<T, E>>,
