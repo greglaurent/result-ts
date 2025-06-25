@@ -219,6 +219,124 @@ export const createBaseResult = () => ({
       return { oks, errors };
     },
 
+    // Enhanced partition with metadata (single iteration)
+    partitionWith: <T, E>(
+      results: Array<Result<T, E>>
+    ): {
+      oks: T[];
+      errors: E[];
+      okCount: number;
+      errorCount: number;
+      total: number
+    } => {
+      const oks = [];
+      const errors = [];
+
+      for (const result of results) {
+        if (result && result.type === OK) {
+          oks.push(result.value);
+        } else if (result && result.type === ERR) {
+          errors.push(result.error);
+        }
+      }
+
+      return {
+        oks,
+        errors,
+        okCount: oks.length,
+        errorCount: errors.length,
+        total: results.length
+      };
+    },
+
+    // Lightweight stats without value extraction
+    analyze: <T, E>(
+      results: Array<Result<T, E>>
+    ): {
+      okCount: number;
+      errorCount: number;
+      total: number;
+      hasErrors: boolean;
+      isEmpty: boolean;
+    } => {
+      let okCount = 0;
+      let errorCount = 0;
+
+      for (const result of results) {
+        if (result && result.type === OK) {
+          okCount++;
+        } else if (result && result.type === ERR) {
+          errorCount++;
+        }
+      }
+
+      return {
+        okCount,
+        errorCount,
+        total: results.length,
+        hasErrors: errorCount > 0,
+        isEmpty: results.length === 0
+      };
+    },
+
+    // Early-exit first element finder
+    findFirst: <T, E>(
+      results: Array<Result<T, E>>
+    ): {
+      firstOk: T | undefined;
+      firstError: E | undefined;
+      okIndex: number;
+      errorIndex: number
+    } => {
+      let firstOk: T | undefined;
+      let firstError: E | undefined;
+      let okIndex = -1;
+      let errorIndex = -1;
+
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+
+        if (result && result.type === OK && firstOk === undefined) {
+          firstOk = result.value;
+          okIndex = i;
+        } else if (result && result.type === ERR && firstError === undefined) {
+          firstError = result.error;
+          errorIndex = i;
+        }
+
+        // Early exit if we found both
+        if (firstOk !== undefined && firstError !== undefined) {
+          break;
+        }
+      }
+
+      return { firstOk, firstError, okIndex, errorIndex };
+    },
+
+    // General-purpose single-pass reducer
+    reduce: <T, E, Acc>(
+      results: Array<Result<T, E>>,
+      reducer: {
+        onOk: (acc: Acc, value: T, index: number) => Acc;
+        onErr: (acc: Acc, error: E, index: number) => Acc;
+      },
+      initialValue: Acc
+    ): Acc => {
+      let acc = initialValue;
+
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+
+        if (result && result.type === OK) {
+          acc = reducer.onOk(acc, result.value, i);
+        } else if (result && result.type === ERR) {
+          acc = reducer.onErr(acc, result.error, i);
+        }
+      }
+
+      return acc;
+    },
+
     first: <T, E>(
       results: Array<Result<T, E>>
     ): Result<T, E[]> => {
