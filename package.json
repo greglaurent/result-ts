@@ -2,9 +2,9 @@
   "name": "result-ts",
   "version": "0.2.1-beta",
   "description": "Result TS: The type safe result library for Typescript.",
-  "type": "module",
   "main": "./dist/index.js",
-  "module": "./dist/index.js",
+  "imodule": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -36,7 +36,6 @@
   "author": "Gregory Laurent",
   "license": "MIT",
   "packageManager": "pnpm@10.12.1",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -47,6 +46,16 @@
       "types": "./dist/core.d.ts",
       "import": "./dist/core.js",
       "require": "./dist/core.js"
+    },
+    "./base": {
+      "types": "./dist/base.d.ts",
+      "import": "./dist/base.js",
+      "require": "./dist/base.js"
+    },
+    "./validation": {
+      "types": "./dist/validation.d.ts",
+      "import": "./dist/validation.js",
+      "require": "./dist/validation.js"
     }
   },
   "peerDependencies": {
