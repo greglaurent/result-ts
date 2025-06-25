@@ -157,7 +157,7 @@ export const createBaseResult = () => ({
     all: <T, E>(
       results: Array<Result<T, E>>
     ): Result<T[], E> => {
-      const values: T[] = [];
+      const values = [];
       for (const result of results) {
         if (result.type === ERR) {
           return result;
@@ -169,7 +169,7 @@ export const createBaseResult = () => ({
 
     oks: <T, E>(
       results: Array<Result<T, E>>
-    ): T[] => {
+    ) => {
       return results
         .filter((result): result is Ok<T> => result.type === OK)
         .map(r => r.value);
@@ -177,7 +177,7 @@ export const createBaseResult = () => ({
 
     errs: <T, E>(
       results: Array<Result<T, E>>
-    ): E[] => {
+    ) => {
       return results
         .filter((result): result is Err<E> => result.type === ERR)
         .map(r => r.error);
@@ -185,25 +185,25 @@ export const createBaseResult = () => ({
 
     partition: <T, E>(
       results: Array<Result<T, E>>
-    ): { successes: T[]; errors: E[] } => {
-      const successes: T[] = [];
-      const errors: E[] = [];
+    ): { oks: T[]; errors: E[] } => {
+      const oks = [];
+      const errors = [];
 
       for (const result of results) {
         if (result.type === OK) {
-          successes.push(result.value);
+          oks.push(result.value);
         } else {
           errors.push(result.error);
         }
       }
 
-      return { successes, errors };
+      return { oks, errors };
     },
 
     first: <T, E>(
       results: Array<Result<T, E>>
     ): Result<T, E[]> => {
-      const errors: E[] = [];
+      const errors = [];
 
       for (const result of results) {
         if (result.type === OK) {
@@ -307,7 +307,7 @@ export const createBaseResult = () => ({
       promises: Array<Promise<Result<T, E>>>
     ): Promise<Result<T[], E>> => {
       const results = await Promise.all(promises);
-      const values: T[] = [];
+      const values = [];
 
       for (const result of results) {
         if (result.type === ERR) {
@@ -321,20 +321,20 @@ export const createBaseResult = () => ({
 
     allSettled: async <T, E>(
       promises: Array<Promise<Result<T, E>>>
-    ): Promise<{ successes: T[]; errors: E[] }> => {
+    ): Promise<{ oks: T[]; errors: E[] }> => {
       const results = await Promise.all(promises);
-      const successes: T[] = [];
-      const errors: E[] = [];
+      const oks = [];
+      const errors = [];
 
       for (const result of results) {
         if (result.type === OK) {
-          successes.push(result.value);
+          oks.push(result.value);
         } else {
           errors.push(result.error);
         }
       }
 
-      return { successes, errors };
+      return { oks, errors };
     },
   },
 
