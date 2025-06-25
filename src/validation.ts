@@ -3,6 +3,10 @@ import { createBaseResult } from '@/base';
 
 const base = createBaseResult();
 
+// Use the same string literals as base.ts
+const OK_VALUE = "Ok" as const;
+const ERR_VALUE = "Err" as const;
+
 export const Result = {
   ...base,
 
@@ -10,8 +14,8 @@ export const Result = {
     valueSchema: z.ZodType<T>,
     errorSchema: z.ZodType<E>
   ) => z.discriminatedUnion("type", [
-    z.object({ type: z.literal("Ok"), value: valueSchema }),
-    z.object({ type: z.literal("Err"), error: errorSchema })
+    z.object({ type: z.literal(OK_VALUE), value: valueSchema }),
+    z.object({ type: z.literal(ERR_VALUE), error: errorSchema })
   ]),
 
   string: <T>(valueSchema: z.ZodType<T>) =>
