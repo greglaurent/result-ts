@@ -8,6 +8,8 @@
     "build:watch": "tsc --watch",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
+    "docs": "typedoc",
+    "docs:serve": "typedoc --watch",
     "dev": "tsc --watch"
   },
   "keywords": [
@@ -56,7 +58,8 @@
     }
   },
   "devDependencies": {
-    "zod": "^3.25.67",
-    "typescript": "^5.8.3"
+    "typedoc": "^0.28.5",
+    "typescript": "^5.8.3",
+    "zod": "^3.25.67"
   }
 }
