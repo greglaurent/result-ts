@@ -62,7 +62,7 @@
   },
   // Files to include
   "include": [
-    "src/**/*",
+    "src/**/*.ts",
     "src/**/*.json"
   ],
   // Files to exclude
