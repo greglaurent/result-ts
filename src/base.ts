@@ -14,28 +14,28 @@ interface Err<E> {
 type Result<T, E = unknown> = Ok<T> | Err<E>;
 
 export const createBaseResult = () => ({
-  ok: <T extends unknown>(value: T): Ok<T> => ({
+  ok: <T>(value: T): Ok<T> => ({
     type: OK,
     value
   }),
 
-  err: <E extends unknown>(error: E): Err<E> => ({
+  err: <E>(error: E): Err<E> => ({
     type: ERR,
     error
   }),
 
   // Type guards
-  isOk: <T extends unknown, E extends unknown>(
+  isOk: <T, E>(
     result: Result<T, E>
   ): result is Ok<T> =>
     result.type === OK,
 
-  isErr: <T extends unknown, E extends unknown>(
+  isErr: <T, E>(
     result: Result<T, E>
   ): result is Err<E> =>
     result.type === ERR,
 
-  unwrap: <T extends unknown, E extends unknown>(result: Result<T, E>): T => {
+  unwrap: <T, E>(result: Result<T, E>): T => {
     if (result.type === OK) return result.value;
 
     const error = result.error;
@@ -54,14 +54,14 @@ export const createBaseResult = () => ({
     throw new Error(`Unwrap failed: ${String(error)}`);
   },
 
-  unwrapOr: <T extends unknown, E extends unknown>(
+  unwrapOr: <T, E>(
     result: Result<T, E>,
     defaultValue: T
   ): T => {
     return result.type === OK ? result.value : defaultValue;
   },
 
-  tryFn: <T extends unknown>(fn: () => T): Result<T, string> => {
+  tryFn: <T>(fn: () => T): Result<T, string> => {
     try {
       return { type: OK, value: fn() };
     } catch (error) {
@@ -72,7 +72,7 @@ export const createBaseResult = () => ({
     }
   },
 
-  tryWith: <T extends unknown, E extends unknown>(
+  tryWith: <T, E>(
     fn: () => T,
     errorMapper: (error: unknown) => E
   ): Result<T, E> => {
@@ -83,7 +83,7 @@ export const createBaseResult = () => ({
     }
   },
   // Pattern matching support
-  match: <T extends unknown, U extends unknown, V extends unknown, E extends unknown>(
+  match: <T, U, V, E>(
     result: Result<T, E>,
     handlers: {
       Ok: (value: T) => U;
@@ -95,7 +95,7 @@ export const createBaseResult = () => ({
       : handlers.Err(result.error);
   },
 
-  safeTry: <T extends unknown, E extends unknown>(
+  safeTry: <T, E>(
     generator: () => Generator<Result<unknown, E>, T, unknown>
   ): Result<T, E> => {
     const gen = generator();
@@ -124,10 +124,10 @@ export const createBaseResult = () => ({
     }
   },
 
-  yieldFn: <T extends unknown, E extends unknown>(result: Result<T, E>) => result,
+  yieldFn: <T, E>(result: Result<T, E>) => result,
 
   iter: {
-    map: <T extends unknown, U extends unknown, E extends unknown>(
+    map: <T, U, E>(
       result: Result<T, E>,
       mapper: (value: T) => U
     ): Result<U, E> => {
@@ -136,7 +136,7 @@ export const createBaseResult = () => ({
         : result;
     },
 
-    mapErr: <T extends unknown, E extends unknown, F extends unknown>(
+    mapErr: <T, E, F>(
       result: Result<T, E>,
       mapper: (error: E) => F
     ): Result<T, F> => {
@@ -145,7 +145,7 @@ export const createBaseResult = () => ({
         : result;
     },
 
-    andThen: <T extends unknown, U extends unknown, E extends unknown>(
+    andThen: <T, U, E>(
       result: Result<T, E>,
       mapper: (value: T) => Result<U, E>
     ): Result<U, E> => {
@@ -154,7 +154,7 @@ export const createBaseResult = () => ({
   },
 
   collections: {
-    all: <T extends unknown, E extends unknown>(
+    all: <T, E>(
       results: Array<Result<T, E>>
     ): Result<T[], E> => {
       const values: T[] = [];
@@ -167,7 +167,7 @@ export const createBaseResult = () => ({
       return { type: OK, value: values };
     },
 
-    oks: <T extends unknown, E extends unknown>(
+    oks: <T, E>(
       results: Array<Result<T, E>>
     ): T[] => {
       return results
@@ -175,7 +175,7 @@ export const createBaseResult = () => ({
         .map(r => r.value);
     },
 
-    errs: <T extends unknown, E extends unknown>(
+    errs: <T, E>(
       results: Array<Result<T, E>>
     ): E[] => {
       return results
@@ -183,7 +183,7 @@ export const createBaseResult = () => ({
         .map(r => r.error);
     },
 
-    partition: <T extends unknown, E extends unknown>(
+    partition: <T, E>(
       results: Array<Result<T, E>>
     ): { successes: T[]; errors: E[] } => {
       const successes: T[] = [];
@@ -200,7 +200,7 @@ export const createBaseResult = () => ({
       return { successes, errors };
     },
 
-    first: <T extends unknown, E extends unknown>(
+    first: <T, E>(
       results: Array<Result<T, E>>
     ): Result<T, E[]> => {
       const errors: E[] = [];
@@ -218,7 +218,7 @@ export const createBaseResult = () => ({
   },
 
   async: {
-    tryFn: async <T extends unknown>(fn: () => Promise<T>): Promise<Result<T, string>> => {
+    tryFn: async <T>(fn: () => Promise<T>): Promise<Result<T, string>> => {
       try {
         const value = await fn();
         return { type: OK, value };
@@ -230,7 +230,7 @@ export const createBaseResult = () => ({
       }
     },
 
-    tryWith: async <T extends unknown, E extends unknown>(
+    tryWith: async <T, E>(
       fn: () => Promise<T>,
       errorMapper: (error: unknown) => E
     ): Promise<Result<T, E>> => {
@@ -242,7 +242,7 @@ export const createBaseResult = () => ({
       }
     },
 
-    safeTry: async <T extends unknown, E extends unknown>(
+    safeTry: async <T, E>(
       generator: () => AsyncGenerator<Result<unknown, E>, T, unknown>
     ): Promise<Result<T, E>> => {
       const gen = generator();
@@ -271,7 +271,7 @@ export const createBaseResult = () => ({
       }
     },
 
-    map: async <T extends unknown, U extends unknown, E extends unknown>(
+    map: async <T, U, E>(
       promise: Promise<Result<T, E>>,
       mapper: (value: T) => U | Promise<U>
     ): Promise<Result<U, E>> => {
@@ -283,7 +283,7 @@ export const createBaseResult = () => ({
       return result;
     },
 
-    mapErr: async <T extends unknown, E extends unknown, F extends unknown>(
+    mapErr: async <T, E, F>(
       promise: Promise<Result<T, E>>,
       mapper: (error: E) => F | Promise<F>
     ): Promise<Result<T, F>> => {
@@ -295,7 +295,7 @@ export const createBaseResult = () => ({
       return result;
     },
 
-    andThen: async <T extends unknown, U extends unknown, E extends unknown>(
+    andThen: async <T, U, E>(
       promise: Promise<Result<T, E>>,
       mapper: (value: T) => Promise<Result<U, E>>
     ): Promise<Result<U, E>> => {
@@ -303,7 +303,7 @@ export const createBaseResult = () => ({
       return result.type === OK ? await mapper(result.value) : result;
     },
 
-    all: async <T extends unknown, E extends unknown>(
+    all: async <T, E>(
       promises: Array<Promise<Result<T, E>>>
     ): Promise<Result<T[], E>> => {
       const results = await Promise.all(promises);
@@ -319,7 +319,7 @@ export const createBaseResult = () => ({
       return { type: OK, value: values };
     },
 
-    allSettled: async <T extends unknown, E extends unknown>(
+    allSettled: async <T, E>(
       promises: Array<Promise<Result<T, E>>>
     ): Promise<{ successes: T[]; errors: E[] }> => {
       const results = await Promise.all(promises);
@@ -339,7 +339,7 @@ export const createBaseResult = () => ({
   },
 
   utils: {
-    inspect: <T extends unknown, E extends unknown>(
+    inspect: <T, E>(
       result: Result<T, E>,
       onOk?: (value: T) => void,
       onErr?: (error: E) => void
@@ -352,7 +352,7 @@ export const createBaseResult = () => ({
       return result;
     },
 
-    tap: <T extends unknown, E extends unknown>(
+    tap: <T, E>(
       result: Result<T, E>,
       fn: (value: T) => void
     ): Result<T, E> => {
@@ -362,7 +362,7 @@ export const createBaseResult = () => ({
       return result;
     },
 
-    tapErr: <T extends unknown, E extends unknown>(
+    tapErr: <T, E>(
       result: Result<T, E>,
       fn: (error: E) => void
     ): Result<T, E> => {
@@ -372,7 +372,7 @@ export const createBaseResult = () => ({
       return result;
     },
 
-    fromNullable: <T extends unknown>(
+    fromNullable: <T>(
       value: T | null | undefined,
       errorValue: unknown = "Value is null or undefined"
     ): Result<T, unknown> => {
@@ -381,13 +381,13 @@ export const createBaseResult = () => ({
         : { type: ERR, error: errorValue };
     },
 
-    toNullable: <T extends unknown, E extends unknown>(
+    toNullable: <T, E>(
       result: Result<T, E>
     ): T | null => {
       return result.type === OK ? result.value : null;
     },
 
-    zip: <T extends unknown, U extends unknown, E extends unknown>(
+    zip: <T, U, E>(
       resultA: Result<T, E>,
       resultB: Result<U, E>
     ): Result<[T, U], E> => {
@@ -407,7 +407,7 @@ export const createBaseResult = () => ({
       throw new Error("Unreachable: both results cannot be Ok here");
     },
 
-    apply: <T extends unknown, U extends unknown, E extends unknown>(
+    apply: <T, U, E>(
       resultFn: Result<(value: T) => U, E>,
       resultValue: Result<T, E>
     ): Result<U, E> => {

@@ -1,6 +1,6 @@
-export type { Result, Ok, Err } from './base';
+export type { Result, Ok, Err } from '@/base';
 
-export * from './core';
+export * from '@/core';
 
 import { Result as ValidResult } from '@/validation';
 

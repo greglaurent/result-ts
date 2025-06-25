@@ -21,4 +21,4 @@ export const {
 
 export const ResultAsync = base.async;
 
-export type { OK, ERR, Result, Ok, Err } from './base';
+export type { OK, ERR, Result, Ok, Err } from '@/base';
