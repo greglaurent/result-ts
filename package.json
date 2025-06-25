@@ -1,16 +1,20 @@
 {
   "name": "result-ts",
-  "version": "0.2.0",
+  "version": "0.2.1-beta",
   "description": "Result TS: The type safe result library for Typescript.",
   "main": "index.ts",
   "scripts": {
     "build": "tsc",
-    "build:watch": "tsc --watch",
+    "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "docs": "typedoc",
     "docs:serve": "typedoc --watch",
-    "dev": "tsc --watch"
+    "pack": "pnpm build && pnpm pack",
+    "pack:test": "pnpm pack && mkdir -p releases && mv *.tgz releases/",
+    "pack:install": "pnpm pack && npm install ./result-ts-*.tgz",
+    "pack:clean": "rm -f *.tgz && rm -rf releases/",
+    "prepack": "npm run clean:pack && npm run build"
   },
   "keywords": [
     "result",
