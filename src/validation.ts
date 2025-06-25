@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createBaseResult } from './base';
+import { createBaseResult } from '@/base';
 
 const base = createBaseResult();
 

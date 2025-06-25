@@ -1,4 +1,4 @@
-# .github/workflows/test-package.yml
+# .github/workflows/package.yml
 name: Result TS Test
 
 on:
@@ -18,15 +18,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20" # Updated to Node 20
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10.12.1 # Updated to match your package.json
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile # Added frozen-lockfile for CI
+
+      - name: Type check
+        run: pnpm typecheck # Added type checking step
 
       - name: Build library
         run: pnpm build
@@ -38,6 +41,14 @@ jobs:
           test -f dist/index.js || (echo "❌ dist/index.js not found" && exit 1)
           test -f dist/index.d.ts || (echo "❌ dist/index.d.ts not found" && exit 1)
           echo "✅ Build files verified"
+
+          # Check that @ imports were resolved correctly
+          if grep -r "@/" dist/ --exclude="*.map"; then
+            echo "❌ Found unresolved @ imports in build output"
+            exit 1
+          else
+            echo "✅ All @ imports resolved correctly"
+          fi
 
       - name: Pack and test
         run: |
@@ -70,13 +81,21 @@ jobs:
           test -f node_modules/result-ts/dist/index.js || (echo "❌ Installed package missing index.js" && exit 1)
           echo "✅ Package structure verified"
 
-      - name: Test import
+      - name: Test import and usage
         run: |
           cd test-project
           cat > test.js << 'EOF'
-          import { ok, err } from 'result-ts';
+          import { ok, err, isOk, isErr } from 'result-ts';
           console.log('✅ Import successful');
+
           const result = ok("hello");
           console.log('✅ ok() works:', result);
+          console.log('✅ isOk() works:', isOk(result));
+
+          const errorResult = err("something went wrong");
+          console.log('✅ err() works:', errorResult);
+          console.log('✅ isErr() works:', isErr(errorResult));
+
+          console.log('🎉 All tests passed!');
           EOF
           node test.js
