@@ -2,7 +2,8 @@
   "name": "result-ts",
   "version": "0.2.1-beta",
   "description": "Result TS: The type safe result library for Typescript.",
-  "main": "index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -41,16 +42,6 @@
       "types": "./dist/core.d.ts",
       "import": "./dist/core.js",
       "require": "./dist/core.js"
-    },
-    "./validation": {
-      "types": "./dist/validation.d.ts",
-      "import": "./dist/validation.js",
-      "require": "./dist/validation.js"
-    },
-    "./base": {
-      "types": "./dist/base.d.ts",
-      "import": "./dist/base.js",
-      "require": "./dist/base.js"
     }
   },
   "peerDependencies": {

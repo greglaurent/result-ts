@@ -41,7 +41,17 @@ jobs:
         run: |
           mkdir test-project
           cd test-project
-          npm init -y
+          # Create package.json with ES module support
+          cat > package.json << 'EOF'
+          {
+            "name": "test-project",
+            "version": "1.0.0",
+            "type": "module",
+            "scripts": {
+              "test": "node test.js"
+            }
+          }
+          EOF
           npm install typescript zod @types/node
 
       - name: Test installation
@@ -49,11 +59,58 @@ jobs:
           cd test-project
           npm install ../releases/result-ts-*.tgz
 
-      - name: Test import
+      - name: Test ES Module import
         run: |
           cd test-project
-          echo "import { ok, err, Result } from 'result-ts'; console.log('Import successful');" > test.js
+          cat > test.js << 'EOF'
+          import { ok, err, Result } from 'result-ts';
+
+          console.log('✅ Import successful');
+
+          // Test basic functionality
+          const result = ok("hello");
+          console.log('✅ ok() works:', result);
+
+          const error = err("failed");
+          console.log('✅ err() works:', error);
+
+          console.log('✅ All tests passed!');
+          EOF
           node test.js
+
+      - name: Test CommonJS require (alternative)
+        run: |
+          cd test-project
+          cat > test-cjs.cjs << 'EOF'
+          const { ok, err, Result } = require('result-ts');
+
+          console.log('✅ CommonJS require successful');
+
+          const result = ok("hello");
+          console.log('✅ ok() works:', result);
+
+          console.log('✅ CommonJS tests passed!');
+          EOF
+          node test-cjs.cjs
+
+      - name: Test TypeScript
+        run: |
+          cd test-project
+          cat > test.ts << 'EOF'
+          import { ok, err, Result, isOk } from 'result-ts';
+
+          function divide(a: number, b: number): Result<number, string> {
+            return b === 0 ? err("Division by zero") : ok(a / b);
+          }
+
+          const result = divide(10, 2);
+          if (isOk(result)) {
+            console.log('✅ TypeScript test result:', result.value);
+          }
+
+          console.log('✅ TypeScript tests passed!');
+          EOF
+          npx tsx test.ts
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
