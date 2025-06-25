@@ -1,23 +1,14 @@
 {
   "name": "result-ts",
-  "version": "0.2.1-beta",
+  "version": "0.2.0",
   "description": "Result TS: The type safe result library for Typescript.",
-  "main": "./dist/index.js",
-  "type": "module",
-  "imodule": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "index.ts",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "pnpm clean && tsc && tsc-alias",
+    "build:watch": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
-    "docs": "typedoc",
-    "docs:serve": "typedoc --watch",
-    "pack": "pnpm build && pnpm pack",
-    "pack:test": "pnpm pack && mkdir -p releases && mv *.tgz releases/",
-    "pack:install": "pnpm pack && npm install ./result-ts-*.tgz",
-    "pack:clean": "rm -f *.tgz && rm -rf releases/",
-    "prepack": "pnpm run pack:clean && pnpm run build"
+    "dev": "concurrently \"tsc --watch\" \"tsc-alias --watch\""
   },
   "keywords": [
     "result",
@@ -30,13 +21,10 @@
     "modular",
     "type-safe"
   ],
-  "files": [
-    "dist",
-    "README.md"
-  ],
   "author": "Gregory Laurent",
   "license": "MIT",
   "packageManager": "pnpm@10.12.1",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -48,15 +36,15 @@
       "import": "./dist/core.js",
       "require": "./dist/core.js"
     },
-    "./base": {
-      "types": "./dist/base.d.ts",
-      "import": "./dist/base.js",
-      "require": "./dist/base.js"
-    },
     "./validation": {
       "types": "./dist/validation.d.ts",
       "import": "./dist/validation.js",
       "require": "./dist/validation.js"
+    },
+    "./base": {
+      "types": "./dist/base.d.ts",
+      "import": "./dist/base.js",
+      "require": "./dist/base.js"
     }
   },
   "peerDependencies": {
@@ -68,6 +56,8 @@
     }
   },
   "devDependencies": {
+    "concurrently": "^9.0.1",
+    "tsc-alias": "^1.8.10",
     "typedoc": "^0.28.5",
     "typescript": "^5.8.3",
     "zod": "^3.25.67"
