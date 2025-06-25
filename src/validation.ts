@@ -6,7 +6,7 @@ const base = createBaseResult();
 export const Result = {
   ...base,
 
-  schema: <T extends unknown, E extends unknown>(
+  schema: <T, E>(
     valueSchema: z.ZodType<T>,
     errorSchema: z.ZodType<E>
   ) => z.discriminatedUnion("type", [
@@ -14,19 +14,19 @@ export const Result = {
     z.object({ type: z.literal("Err"), error: errorSchema })
   ]),
 
-  string: <T extends unknown>(valueSchema: z.ZodType<T>) =>
+  string: <T>(valueSchema: z.ZodType<T>) =>
     Result.schema(valueSchema, z.string()),
 
-  number: <T extends unknown>(valueSchema: z.ZodType<T>) =>
+  number: <T>(valueSchema: z.ZodType<T>) =>
     Result.schema(valueSchema, z.number()),
 
-  error: <T extends unknown>(valueSchema: z.ZodType<T>) =>
+  error: <T>(valueSchema: z.ZodType<T>) =>
     Result.schema(valueSchema, z.object({
       message: z.string(),
       code: z.number().optional(),
     })),
 
-  parseJson: <T extends unknown>(jsonString: string, schema: z.ZodType<T>) => {
+  parseJson: <T>(jsonString: string, schema: z.ZodType<T>) => {
     try {
       const parsed = JSON.parse(jsonString);
       const validated = schema.safeParse(parsed);
@@ -38,7 +38,7 @@ export const Result = {
     }
   },
 
-  parseResult: <T extends unknown, E extends unknown>(
+  parseResult: <T, E>(
     jsonString: string,
     valueSchema: z.ZodType<T>,
     errorSchema: z.ZodType<E>
