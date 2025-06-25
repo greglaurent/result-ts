@@ -1,0 +1,62 @@
+# .github/workflows/test-package.yml
+name: Test Package
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
+      - name: Pack and test
+        run: |
+          pnpm pack
+          mkdir -p releases
+          mv *.tgz releases/
+
+      - name: Create test project
+        run: |
+          mkdir test-project
+          cd test-project
+          npm init -y
+          npm install typescript zod @types/node
+
+      - name: Test installation
+        run: |
+          cd test-project
+          npm install ../releases/result-ts-*.tgz
+
+      - name: Test import
+        run: |
+          cd test-project
+          echo "import { ok, err, Result } from 'result-ts'; console.log('Import successful');" > test.js
+          node test.js
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-tarball
+          path: releases/*.tgz
