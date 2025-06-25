@@ -1,0 +1,45 @@
+{
+  "entryPoints": [
+    "src/index.ts",
+    "src/core.ts",
+    "src/validation.ts",
+    "src/base.ts"
+  ],
+  "entryPointStrategy": "expand",
+  "out": "docs",
+  "theme": "default",
+  "name": "result-ts",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "readme": "README.md",
+  "includeVersion": true,
+  "sort": [
+    "source-order"
+  ],
+  "validation": {
+    "invalidLink": true,
+    "notExported": false
+  },
+  "categoryOrder": [
+    "Core",
+    "Functional Operations",
+    "Validation",
+    "Utilities"
+  ],
+  "cleanOutputDir": true,
+  "treatWarningsAsErrors": false,
+  "logLevel": "Verbose",
+  "skipErrorChecking": false,
+  "tsconfig": "tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true
+  },
+  "plugin": [],
+  "intentionallyNotExported": [
+    "OK",
+    "ERR"
+  ],
+  "githubPages": true,
+  "basePath": "/result-ts/"
+}

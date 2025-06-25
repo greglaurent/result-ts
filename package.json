@@ -1,0 +1,98 @@
+{
+  "name": "result-ts",
+  "version": "0.4.0-beta",
+  "license": "MIT",
+  "description": "The performance-first Result library with comprehensive utilities and zero overhead.",
+  "author": {
+    "name": "Gregory Laurent",
+    "email": "gregory.m.laurent@gmail.com",
+    "url": "https://your-website.com"
+  },
+  "homepage": "https://github.com/greglaurent/result-ts#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/greglaurent/result-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/greglaurent/result-ts/issues"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "pnpm clean && tsc && tsc-alias",
+    "build:watch": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
+    "clean": "rm -rf dist",
+    "dev": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
+    "docs": "pnpm build && typedoc",
+    "docs:serve": "pnpm docs && npx http-server docs -p 8080",
+    "docs:watch": "typedoc --watch",
+    "docs:debug": "pnpm build && typedoc --logLevel Verbose",
+    "lint": "echo \"Linting coming soon\" && exit 0",
+    "prepublishOnly": "pnpm build",
+    "test": "echo \"Tests coming soon\" && exit 0",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "result",
+    "error-handling",
+    "typescript",
+    "performance",
+    "functional-programming",
+    "rust-style",
+    "type-safe",
+    "zero-overhead",
+    "async",
+    "validation",
+    "zod",
+    "fp",
+    "monad",
+    "either"
+  ],
+  "packageManager": "pnpm@10.12.1",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js",
+      "require": "./dist/core.js"
+    },
+    "./validation": {
+      "types": "./dist/validation.d.ts",
+      "import": "./dist/validation.js",
+      "require": "./dist/validation.js"
+    },
+    "./base": {
+      "types": "./dist/base.d.ts",
+      "import": "./dist/base.js",
+      "require": "./dist/base.js"
+    }
+  },
+  "peerDependencies": {
+    "zod": "^3.25.67"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "tsc-alias": "^1.8.10",
+    "typedoc": "^0.28.5",
+    "typescript": "^5.8.3",
+    "zod": "^3.25.67"
+  }
+}
