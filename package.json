@@ -2,6 +2,7 @@
   "name": "result-ts",
   "version": "0.2.1-beta",
   "description": "Result TS: The type safe result library for Typescript.",
+  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "scripts": {
@@ -27,6 +28,10 @@
     "functional",
     "modular",
     "type-safe"
+  ],
+  "files": [
+    "dist",
+    "README.md"
   ],
   "author": "Gregory Laurent",
   "license": "MIT",

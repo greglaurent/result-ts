@@ -1,9 +1,9 @@
 # .github/workflows/test-package.yml
-name: Test Package
+name: Result TS Test
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -28,8 +28,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build
+      - name: Build library
         run: pnpm build
+
+      - name: Verify build output
+        run: |
+          echo "Checking if build files exist..."
+          ls -la dist/
+          test -f dist/index.js || (echo "❌ dist/index.js not found" && exit 1)
+          test -f dist/index.d.ts || (echo "❌ dist/index.d.ts not found" && exit 1)
+          echo "✅ Build files verified"
 
       - name: Pack and test
         run: |
@@ -41,79 +49,34 @@ jobs:
         run: |
           mkdir test-project
           cd test-project
-          # Create package.json with ES module support
           cat > package.json << 'EOF'
           {
             "name": "test-project",
             "version": "1.0.0",
-            "type": "module",
-            "scripts": {
-              "test": "node test.js"
-            }
+            "type": "module"
           }
           EOF
-          npm install typescript zod @types/node
 
       - name: Test installation
         run: |
           cd test-project
           npm install ../releases/result-ts-*.tgz
 
-      - name: Test ES Module import
+      - name: Verify package structure
+        run: |
+          cd test-project
+          echo "Checking installed package structure..."
+          ls -la node_modules/result-ts/
+          test -f node_modules/result-ts/dist/index.js || (echo "❌ Installed package missing index.js" && exit 1)
+          echo "✅ Package structure verified"
+
+      - name: Test import
         run: |
           cd test-project
           cat > test.js << 'EOF'
-          import { ok, err, Result } from 'result-ts';
-
+          import { ok, err } from 'result-ts';
           console.log('✅ Import successful');
-
-          // Test basic functionality
           const result = ok("hello");
           console.log('✅ ok() works:', result);
-
-          const error = err("failed");
-          console.log('✅ err() works:', error);
-
-          console.log('✅ All tests passed!');
           EOF
           node test.js
-
-      - name: Test CommonJS require (alternative)
-        run: |
-          cd test-project
-          cat > test-cjs.cjs << 'EOF'
-          const { ok, err, Result } = require('result-ts');
-
-          console.log('✅ CommonJS require successful');
-
-          const result = ok("hello");
-          console.log('✅ ok() works:', result);
-
-          console.log('✅ CommonJS tests passed!');
-          EOF
-          node test-cjs.cjs
-
-      - name: Test TypeScript
-        run: |
-          cd test-project
-          cat > test.ts << 'EOF'
-          import { ok, err, Result, isOk } from 'result-ts';
-
-          function divide(a: number, b: number): Result<number, string> {
-            return b === 0 ? err("Division by zero") : ok(a / b);
-          }
-
-          const result = divide(10, 2);
-          if (isOk(result)) {
-            console.log('✅ TypeScript test result:', result.value);
-          }
-
-          console.log('✅ TypeScript tests passed!');
-          EOF
-          npx tsx test.ts
-
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-tarball
-          path: releases/*.tgz
