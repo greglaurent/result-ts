@@ -1,0 +1,82 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", // Modern JS features, good browser support
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
+    "module": "ESNext", // Use latest module syntax
+    "moduleResolution": "node", // Node-style module resolution
+    "declaration": true, // Generate .d.ts files
+    "declarationMap": true, // Generate .d.ts.map files for debugging
+    "outDir": "./dist", // Output directory
+    "rootDir": "./src", // Source directory
+    "removeComments": false, // Keep comments for better DX
+    "sourceMap": true, // Generate source maps
+    "inlineSources": true, // Include source code in source maps
+    // JavaScript Support
+    "allowJs": false, // Pure TypeScript library
+    "checkJs": false, // Don't check JS files
+    // Emit Constraints
+    "noEmit": false, // We want to emit files
+    "importHelpers": true, // Use tslib helpers (add tslib as dependency)
+    "downlevelIteration": true, // Support for...of on older targets
+    // Interop Constraints
+    "allowSyntheticDefaultImports": true, // Allow default imports from modules
+    "esModuleInterop": true, // Enable all synthetic default imports
+    "forceConsistentCasingInFileNames": true, // Case-sensitive imports
+    "isolatedModules": true, // Each file can be transpiled separately
+    // Type Checking - Strict but practical for library development
+    "strict": true, // Enable all strict type checking
+    "noImplicitAny": true, // Error on expressions with implied 'any'
+    "strictNullChecks": true, // Strict null checks
+    "strictFunctionTypes": true, // Strict function types
+    "strictBindCallApply": true, // Strict bind/call/apply
+    "strictPropertyInitialization": true, // Strict property initialization
+    "noImplicitThis": true, // Error on 'this' with implied 'any'
+    "alwaysStrict": true, // Parse in strict mode
+    "noImplicitReturns": true, // Error when not all code paths return
+    "noFallthroughCasesInSwitch": true, // Error on fallthrough switch cases
+    "noUncheckedIndexedAccess": true, // Add 'undefined' to index signature results
+    "noImplicitOverride": true, // Require 'override' modifier
+    "exactOptionalPropertyTypes": true, // Exact optional property types
+    // Additional Checks
+    "noUnusedLocals": true, // Error on unused locals
+    "noUnusedParameters": true, // Error on unused parameters
+    "noPropertyAccessFromIndexSignature": false, // Allow property access
+    "allowUnusedLabels": false, // Error on unused labels
+    "allowUnreachableCode": false, // Error on unreachable code
+    // Path Mapping
+    "baseUrl": "./src", // Base directory for relative imports
+    "paths": {
+      "@/*": [
+        "*"
+      ], // Allow @/base instead of ./base
+      "~/*": [
+        "*"
+      ] // Alternative prefix
+    },
+    // Advanced
+    "skipLibCheck": true, // Skip type checking of declaration files
+    "resolveJsonModule": true, // Include JSON modules
+    "experimentalDecorators": false, // No decorators needed for this library
+    "emitDecoratorMetadata": false, // No decorator metadata
+    "useDefineForClassFields": true // Use define semantics for class fields
+  },
+  // Files to include
+  "include": [
+    "src/**/*",
+    "src/**/*.json"
+  ],
+  // Files to exclude
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__tests__/**",
+    "**/__mocks__/**"
+  ],
+  "references": []
+}
