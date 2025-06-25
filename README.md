@@ -98,7 +98,9 @@ import { Result } from 'neverthrow';                // ~4.1KB (no choice)
 ### Core Functions
 
 ok(value) - Create success Result
+
 err(error) - Create error Result
+
 map(result, fn) - Transform success value
 
 ### Examples
