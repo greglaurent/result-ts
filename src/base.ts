@@ -77,7 +77,7 @@ export const createBaseResult = () => ({
       Err: (error: E) => V;
     }
   ): U | V => {
-    return result.type === "Ok"
+    return result.type === OK
       ? handlers.Ok(result.value)
       : handlers.Err(result.error);
   },
@@ -92,7 +92,7 @@ export const createBaseResult = () => ({
     while (!current.done) {
       const result = current.value as Result<unknown, E>;
 
-      if (result.type === "Err") {
+      if (result.type === ERR) {
         return result as Result<T, E>;
       }
 
@@ -101,7 +101,7 @@ export const createBaseResult = () => ({
     }
 
     // Generator completed successfully, return the final value
-    return { type: "Ok" as const, value: current.value };
+    return { type: OK, value: current.value };
   },
 
   yieldFn: <T extends unknown, E extends unknown>(result: Result<T, E>) => result,
@@ -231,14 +231,14 @@ export const createBaseResult = () => ({
       while (!current.done) {
         const result = current.value as Result<unknown, E>;
 
-        if (result.type === "Err") {
+        if (result.type === ERR) {
           return result as Result<T, E>;
         }
 
         current = await gen.next(result.value);
       }
 
-      return { type: "Ok" as const, value: current.value };
+      return { type: OK, value: current.value };
     },
 
 
@@ -362,21 +362,21 @@ export const createBaseResult = () => ({
       resultA: Result<T, E>,
       resultB: Result<U, E>
     ): Result<[T, U], E> => {
-      if (resultA.type === "Ok" && resultB.type === "Ok") {
-        return { type: "Ok" as const, value: [resultA.value, resultB.value] };
+      if (resultA.type === OK && resultB.type === OK) {
+        return { type: OK, value: [resultA.value, resultB.value] };
       }
-      return resultA.type === "Err" ? resultA : resultB as Err<E>;
+      return resultA.type === ERR ? resultA : resultB as Err<E>;
     },
 
     apply: <T extends unknown, U extends unknown, E extends unknown>(
       resultFn: Result<(value: T) => U, E>,
       resultValue: Result<T, E>
     ): Result<U, E> => {
-      if (resultFn.type === "Ok" && resultValue.type === "Ok") {
-        return { type: "Ok" as const, value: resultFn.value(resultValue.value) };
+      if (resultFn.type === OK && resultValue.type === OK) {
+        return { type: OK, value: resultFn.value(resultValue.value) };
       }
       // Return first error encountered
-      return resultFn.type === "Err" ? resultFn : resultValue as Err<E>;
+      return resultFn.type === ERR ? resultFn : resultValue as Err<E>;
     }
   }
 });
