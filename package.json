@@ -2,13 +2,20 @@
   "name": "result-ts",
   "version": "0.2.0",
   "description": "Result TS: The type safe result library for Typescript.",
-  "main": "index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "pnpm clean && tsc && tsc-alias",
     "build:watch": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
-    "dev": "concurrently \"tsc --watch\" \"tsc-alias --watch\""
+    "dev": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
+    "prepublishOnly": "pnpm build"
   },
   "keywords": [
     "result",
@@ -24,7 +31,6 @@
   "author": "Gregory Laurent",
   "license": "MIT",
   "packageManager": "pnpm@10.12.1",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -58,7 +64,6 @@
   "devDependencies": {
     "concurrently": "^9.0.1",
     "tsc-alias": "^1.8.10",
-    "typedoc": "^0.28.5",
     "typescript": "^5.8.3",
     "zod": "^3.25.67"
   }

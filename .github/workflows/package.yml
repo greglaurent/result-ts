@@ -78,7 +78,12 @@ jobs:
           cd test-project
           echo "Checking installed package structure..."
           ls -la node_modules/result-ts/
-          test -f node_modules/result-ts/dist/index.js || (echo "❌ Installed package missing index.js" && exit 1)
+          test -f node_modules/result-ts/dist/index.js || (echo "❌ Installed package missing dist/index.js" && exit 1)
+          test -f node_modules/result-ts/dist/index.d.ts || (echo "❌ Installed package missing dist/index.d.ts" && exit 1)
+          test -f node_modules/result-ts/package.json || (echo "❌ Installed package missing package.json" && exit 1)
+
+          echo "✅ Checking what files are actually in the package:"
+          find node_modules/result-ts/ -type f | head -10
           echo "✅ Package structure verified"
 
       - name: Test import and usage
