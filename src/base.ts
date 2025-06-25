@@ -95,26 +95,36 @@ export const createBaseResult = () => ({
       : handlers.Err(result.error);
   },
 
-  // Rust-like ? operator simulation using generators
   safeTry: <T extends unknown, E extends unknown>(
     generator: () => Generator<Result<unknown, E>, T, unknown>
   ): Result<T, E> => {
     const gen = generator();
-    let current = gen.next();
 
-    while (!current.done) {
-      const result = current.value as Result<unknown, E>;
+    try {
+      let current = gen.next();
 
-      if (result.type === ERR) {
-        return result as Result<T, E>;
+      while (!current.done) {
+        const result = current.value as Result<unknown, E>;
+
+        if (result.type === ERR) {
+          // Clean up generator before returning error
+          try {
+            gen.return(undefined as T);
+          } catch {
+            // Ignore cleanup errors
+          }
+          return { type: ERR, error: result.error };
+        }
+
+        current = gen.next(result.value);
       }
 
-      // Pass the Ok value back to the generator
-      current = gen.next(result.value);
+      return { type: OK, value: current.value };
+    } catch (error) {
+      // Ensure cleanup if generator throws
+      gen.return(undefined as T);
+      throw error;
     }
-
-    // Generator completed successfully, return the final value
-    return { type: OK, value: current.value };
   },
 
   yieldFn: <T extends unknown, E extends unknown>(result: Result<T, E>) => result,
@@ -239,21 +249,29 @@ export const createBaseResult = () => ({
       generator: () => AsyncGenerator<Result<unknown, E>, T, unknown>
     ): Promise<Result<T, E>> => {
       const gen = generator();
-      let current = await gen.next();
 
-      while (!current.done) {
-        const result = current.value as Result<unknown, E>;
+      try {
+        let current = await gen.next();
 
-        if (result.type === ERR) {
-          return result as Result<T, E>;
+        while (!current.done) {
+          const result = current.value as Result<unknown, E>;
+
+          if (result.type === ERR) {
+            // Clean up async generator before returning error
+            await gen.return(undefined as T);
+            return { type: ERR, error: result.error };
+          }
+
+          current = await gen.next(result.value);
         }
 
-        current = await gen.next(result.value);
+        return { type: OK, value: current.value };
+      } catch (error) {
+        // Ensure cleanup if generator throws
+        await gen.return(undefined as T);
+        throw error;
       }
-
-      return { type: OK, value: current.value };
     },
-
 
     map: async <T extends unknown, U extends unknown, E extends unknown>(
       promise: Promise<Result<T, E>>,
