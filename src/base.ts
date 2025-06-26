@@ -16,24 +16,18 @@ type Result<T, E = unknown> = Ok<T> | Err<E>;
 export const createBaseResult = () => ({
   ok: <T>(value: T): Ok<T> => ({
     type: OK,
-    value
+    value,
   }),
 
   err: <E>(error: E): Err<E> => ({
     type: ERR,
-    error
+    error,
   }),
 
   // Type guards
-  isOk: <T, E>(
-    result: Result<T, E>
-  ): result is Ok<T> =>
-    result.type === OK,
+  isOk: <T, E>(result: Result<T, E>): result is Ok<T> => result.type === OK,
 
-  isErr: <T, E>(
-    result: Result<T, E>
-  ): result is Err<E> =>
-    result.type === ERR,
+  isErr: <T, E>(result: Result<T, E>): result is Err<E> => result.type === ERR,
 
   unwrap: <T, E>(result: Result<T, E>): T => {
     if (result.type === OK) return result.value;
@@ -46,7 +40,7 @@ export const createBaseResult = () => ({
     }
 
     // If it's a string, use it as the message
-    if (typeof error === 'string') {
+    if (typeof error === "string") {
       throw new Error(error);
     }
 
@@ -54,10 +48,7 @@ export const createBaseResult = () => ({
     throw new Error(`Unwrap failed: ${String(error)}`);
   },
 
-  unwrapOr: <T, E>(
-    result: Result<T, E>,
-    defaultValue: T
-  ): T => {
+  unwrapOr: <T, E>(result: Result<T, E>, defaultValue: T): T => {
     return result.type === OK ? result.value : defaultValue;
   },
 
@@ -67,14 +58,14 @@ export const createBaseResult = () => ({
     } catch (error) {
       return {
         type: ERR,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   },
 
   handleWith: <T, E>(
     fn: () => T,
-    errorMapper: (error: unknown) => E
+    errorMapper: (error: unknown) => E,
   ): Result<T, E> => {
     try {
       return { type: OK, value: fn() };
@@ -82,13 +73,14 @@ export const createBaseResult = () => ({
       return { type: ERR, error: errorMapper(error) };
     }
   },
+
   // Pattern matching support
   match: <T, U, V, E>(
     result: Result<T, E>,
     handlers: {
       Ok: (value: T) => U;
       Err: (error: E) => V;
-    }
+    },
   ): U | V => {
     return result.type === OK
       ? handlers.Ok(result.value)
@@ -96,7 +88,7 @@ export const createBaseResult = () => ({
   },
 
   safe: <T, E>(
-    generator: () => Generator<Result<unknown, E>, T, unknown>
+    generator: () => Generator<Result<unknown, E>, T, unknown>,
   ): Result<T, E> => {
     const gen = generator();
     try {
@@ -129,7 +121,7 @@ export const createBaseResult = () => ({
   iter: {
     map: <T, U, E>(
       result: Result<T, E>,
-      mapper: (value: T) => U
+      mapper: (value: T) => U,
     ): Result<U, E> => {
       return result.type === OK
         ? { type: OK, value: mapper(result.value) }
@@ -138,7 +130,7 @@ export const createBaseResult = () => ({
 
     mapErr: <T, E, F>(
       result: Result<T, E>,
-      mapper: (error: E) => F
+      mapper: (error: E) => F,
     ): Result<T, F> => {
       return result.type === ERR
         ? { type: ERR, error: mapper(result.error) }
@@ -147,7 +139,7 @@ export const createBaseResult = () => ({
 
     andThen: <T, U, E>(
       result: Result<T, E>,
-      mapper: (value: T) => Result<U, E>
+      mapper: (value: T) => Result<U, E>,
     ): Result<U, E> => {
       return result.type === OK ? mapper(result.value) : result;
     },
@@ -169,9 +161,7 @@ export const createBaseResult = () => ({
   },
 
   collections: {
-    all: <T, E>(
-      results: Array<Result<T, E>>
-    ): Result<T[], E> => {
+    all: <T, E>(results: Array<Result<T, E>>): Result<T[], E> => {
       const values = [];
       for (const result of results) {
         if (result.type === ERR) {
@@ -203,7 +193,7 @@ export const createBaseResult = () => ({
     },
 
     partition: <T, E>(
-      results: Array<Result<T, E>>
+      results: Array<Result<T, E>>,
     ): { oks: T[]; errors: E[] } => {
       const oks = [];
       const errors = [];
@@ -221,13 +211,13 @@ export const createBaseResult = () => ({
 
     // Enhanced partition with metadata (single iteration)
     partitionWith: <T, E>(
-      results: Array<Result<T, E>>
+      results: Array<Result<T, E>>,
     ): {
       oks: T[];
       errors: E[];
       okCount: number;
       errorCount: number;
-      total: number
+      total: number;
     } => {
       const oks = [];
       const errors = [];
@@ -245,13 +235,13 @@ export const createBaseResult = () => ({
         errors,
         okCount: oks.length,
         errorCount: errors.length,
-        total: results.length
+        total: results.length,
       };
     },
 
     // Lightweight stats without value extraction
     analyze: <T, E>(
-      results: Array<Result<T, E>>
+      results: Array<Result<T, E>>,
     ): {
       okCount: number;
       errorCount: number;
@@ -275,18 +265,18 @@ export const createBaseResult = () => ({
         errorCount,
         total: results.length,
         hasErrors: errorCount > 0,
-        isEmpty: results.length === 0
+        isEmpty: results.length === 0,
       };
     },
 
     // Early-exit first element finder
     findFirst: <T, E>(
-      results: Array<Result<T, E>>
+      results: Array<Result<T, E>>,
     ): {
       firstOk: T | undefined;
       firstError: E | undefined;
       okIndex: number;
-      errorIndex: number
+      errorIndex: number;
     } => {
       let firstOk: T | undefined;
       let firstError: E | undefined;
@@ -320,7 +310,7 @@ export const createBaseResult = () => ({
         onOk: (acc: Acc, value: T, index: number) => Acc;
         onErr: (acc: Acc, error: E, index: number) => Acc;
       },
-      initialValue: Acc
+      initialValue: Acc,
     ): Acc => {
       let acc = initialValue;
 
@@ -337,9 +327,7 @@ export const createBaseResult = () => ({
       return acc;
     },
 
-    first: <T, E>(
-      results: Array<Result<T, E>>
-    ): Result<T, E[]> => {
+    first: <T, E>(results: Array<Result<T, E>>): Result<T, E[]> => {
       const errors = [];
 
       for (const result of results) {
@@ -351,7 +339,6 @@ export const createBaseResult = () => ({
 
       return { type: ERR, error: errors };
     },
-
   },
 
   async: {
@@ -362,14 +349,14 @@ export const createBaseResult = () => ({
       } catch (error) {
         return {
           type: ERR,
-          error: error instanceof Error ? error.message : "Unknown error"
+          error: error instanceof Error ? error.message : "Unknown error",
         };
       }
     },
 
     handleWith: async <T, E>(
       fn: () => Promise<T>,
-      errorMapper: (error: unknown) => E
+      errorMapper: (error: unknown) => E,
     ): Promise<Result<T, E>> => {
       try {
         const value = await fn();
@@ -379,8 +366,8 @@ export const createBaseResult = () => ({
       }
     },
 
-    safeWith: async <T, E>(
-      generator: () => AsyncGenerator<Result<unknown, E>, T, unknown>
+    safe: async <T, E>(
+      generator: () => AsyncGenerator<Result<unknown, E>, T, unknown>,
     ): Promise<Result<T, E>> => {
       const gen = generator();
       try {
@@ -410,7 +397,7 @@ export const createBaseResult = () => ({
 
     map: async <T, U, E>(
       promise: Promise<Result<T, E>>,
-      mapper: (value: T) => U | Promise<U>
+      mapper: (value: T) => U | Promise<U>,
     ): Promise<Result<U, E>> => {
       const result = await promise;
       if (result.type === OK) {
@@ -422,7 +409,7 @@ export const createBaseResult = () => ({
 
     mapErr: async <T, E, F>(
       promise: Promise<Result<T, E>>,
-      mapper: (error: E) => F | Promise<F>
+      mapper: (error: E) => F | Promise<F>,
     ): Promise<Result<T, F>> => {
       const result = await promise;
       if (result.type === ERR) {
@@ -434,14 +421,14 @@ export const createBaseResult = () => ({
 
     andThen: async <T, U, E>(
       promise: Promise<Result<T, E>>,
-      mapper: (value: T) => Promise<Result<U, E>>
+      mapper: (value: T) => Promise<Result<U, E>>,
     ): Promise<Result<U, E>> => {
       const result = await promise;
       return result.type === OK ? await mapper(result.value) : result;
     },
 
     all: async <T, E>(
-      promises: Array<Promise<Result<T, E>>>
+      promises: Array<Promise<Result<T, E>>>,
     ): Promise<Result<T[], E>> => {
       const results = await Promise.all(promises);
       const values = [];
@@ -457,7 +444,7 @@ export const createBaseResult = () => ({
     },
 
     allSettled: async <T, E>(
-      promises: Array<Promise<Result<T, E>>>
+      promises: Array<Promise<Result<T, E>>>,
     ): Promise<{ oks: T[]; errors: E[] }> => {
       const results = await Promise.all(promises);
       const oks = [];
@@ -479,7 +466,7 @@ export const createBaseResult = () => ({
     inspect: <T, E>(
       result: Result<T, E>,
       onOk?: (value: T) => void,
-      onErr?: (error: E) => void
+      onErr?: (error: E) => void,
     ): Result<T, E> => {
       if (result.type === OK && onOk) {
         onOk(result.value);
@@ -489,10 +476,7 @@ export const createBaseResult = () => ({
       return result;
     },
 
-    tap: <T, E>(
-      result: Result<T, E>,
-      fn: (value: T) => void
-    ): Result<T, E> => {
+    tap: <T, E>(result: Result<T, E>, fn: (value: T) => void): Result<T, E> => {
       if (result.type === OK) {
         fn(result.value);
       }
@@ -501,7 +485,7 @@ export const createBaseResult = () => ({
 
     tapErr: <T, E>(
       result: Result<T, E>,
-      fn: (error: E) => void
+      fn: (error: E) => void,
     ): Result<T, E> => {
       if (result.type === ERR) {
         fn(result.error);
@@ -511,22 +495,20 @@ export const createBaseResult = () => ({
 
     fromNullable: <T>(
       value: T | null | undefined,
-      errorValue: unknown = "Value is null or undefined"
+      errorValue: unknown = "Value is null or undefined",
     ): Result<T, unknown> => {
       return value != null
         ? { type: OK, value }
         : { type: ERR, error: errorValue };
     },
 
-    toNullable: <T, E>(
-      result: Result<T, E>
-    ): T | null => {
+    toNullable: <T, E>(result: Result<T, E>): T | null => {
       return result.type === OK ? result.value : null;
     },
 
     zip: <T, U, E>(
       resultA: Result<T, E>,
-      resultB: Result<U, E>
+      resultB: Result<U, E>,
     ): Result<[T, U], E> => {
       if (resultA.type === OK && resultB.type === OK) {
         return { type: OK, value: [resultA.value, resultB.value] };
@@ -546,7 +528,7 @@ export const createBaseResult = () => ({
 
     apply: <T, U, E>(
       resultFn: Result<(value: T) => U, E>,
-      resultValue: Result<T, E>
+      resultValue: Result<T, E>,
     ): Result<U, E> => {
       if (resultFn.type === OK && resultValue.type === OK) {
         return { type: OK, value: resultFn.value(resultValue.value) };
@@ -564,7 +546,7 @@ export const createBaseResult = () => ({
       // This should never happen, but TypeScript requires it
       throw new Error("Unreachable: both results cannot be Ok here");
     },
-  }
+  },
 });
 
 export type { OK, ERR, Result, Ok, Err };
