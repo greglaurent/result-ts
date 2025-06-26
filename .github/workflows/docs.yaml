@@ -37,16 +37,25 @@ jobs:
       - name: Build project
         run: pnpm build
 
+      - name: Clean docs directory
+        run: rm -rf docs
+
       - name: Generate documentation
-        run: pnpm docs
+        run: |
+          echo "Generating TypeDoc documentation..."
+          pnpm docs
+          echo "Documentation generation completed"
 
       - name: Check docs were generated
         run: |
           if [ ! -d "docs" ] || [ -z "$(ls -A docs)" ]; then
             echo "❌ Documentation was not generated or is empty"
+            ls -la
             exit 1
           fi
           echo "✅ Documentation generated successfully"
+          echo "Generated files:"
+          ls -la docs/
 
       - name: Upload docs artifacts (for PR review)
         if: github.event_name == 'pull_request'
@@ -82,8 +91,14 @@ jobs:
       - name: Build project
         run: pnpm build
 
+      - name: Clean docs directory
+        run: rm -rf docs
+
       - name: Generate documentation
-        run: pnpm docs
+        run: |
+          echo "Generating TypeDoc documentation for deployment..."
+          pnpm docs
+          echo "Documentation generation completed"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
