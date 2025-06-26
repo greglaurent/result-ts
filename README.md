@@ -124,16 +124,31 @@ batch.oks(results);
 const { firstOk, firstError } = batch.findFirst(results);
 ```
 
-## 📊 Bundle Size Comparison
+## 🏗️ API Overview
+
+### 📊 Bundle Size Comparison
 
 | Import Strategy                                     | Bundle Size     | Dependencies   |
 | --------------------------------------------------- | --------------- | -------------- |
-| `import { ok, err, isOk, isErr } from 'result-ts/minimal'` | **137 bytes**   | None           |
+| `import { ok, err } from 'result-ts'`              | **127 bytes**   | None           |
 | `import { ok, err, handle } from 'result-ts'`      | **203 bytes**   | None           |
-| `import { ok, err, handle, iter, batch } from 'result-ts'` | **2.2KB**       | None           |
-| `import { validate } from 'result-ts/validation'`  | **2.2KB + Zod** | Zod (optional) |
+| `import { ok, err, handle, isOk, isErr } from 'result-ts'` | **255 bytes** | None |
+| `import { map, pipe } from 'result-ts/iter'`       | **139 bytes**   | None           |
+| `import { all, partition } from 'result-ts/batch'` | **185 bytes**   | None           |
+| `import { tap, inspect } from 'result-ts/utils'`   | **127 bytes**   | None           |
+| `import { safe, zip } from 'result-ts/patterns'`   | **539 bytes**   | None           |
+| `import { validate } from 'result-ts/schema'`      | **217 bytes**   | Zod (optional) |
 
-## 🏗️ API Overview
+### Layered Architecture Bundle Sizes
+
+| Layer           | Functions                           | Bundle Size     |
+| --------------- | ----------------------------------- | --------------- |
+| **Core**        | Essential Result operations         | **255 bytes**  |
+| **Iter**        | Core + data transformation          | **268 bytes**  |
+| **Utils**       | Core + debugging utilities          | **281 bytes**  |
+| **Schema**      | Core + validation with Zod          | **356 bytes**  |
+| **Batch**       | Core + array processing             | **451 bytes**  |
+| **Patterns**    | Core + advanced patterns            | **748 bytes**  |
 
 ### Core (Root Level)
 
