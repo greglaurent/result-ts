@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noUnusedLocals": false, // ✅ Disable unused variable warnings
+    "noUnusedParameters": false, // ✅ Disable unused parameter warnings
+    "noEmit": true // ✅ Don't emit, just for testing
+  },
+  "include": [
+    "./*.test.ts",
+    "../src/**/*"
+  ]
+}

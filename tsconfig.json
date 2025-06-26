@@ -10,7 +10,7 @@
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "removeComments": false,
     "sourceMap": true,
     "inlineSources": true,
@@ -66,17 +66,14 @@
   // Files to include
   "include": [
     "src/**/*",
-    "src/**/*.json"
+    "src/**/*.json",
+    "tests/**/*"
   ],
   // Files to exclude
   "exclude": [
     "node_modules",
     "dist",
     "build",
-    "**/*.test.ts",
-    "**/*.spec.ts",
-    "**/__tests__/**",
-    "**/__mocks__/**"
   ],
   // tsc-alias configuration
   "tsc-alias": {

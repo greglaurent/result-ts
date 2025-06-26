@@ -90,6 +90,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.0.1",
+    "perf_hooks": "^0.0.1",
     "tsc-alias": "^1.8.10",
     "typedoc": "^0.28.5",
     "typescript": "^5.8.3",

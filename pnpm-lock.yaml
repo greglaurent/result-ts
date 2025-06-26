@@ -11,6 +11,9 @@ importers:
       concurrently:
         specifier: ^9.0.1
         version: 9.2.0
+      perf_hooks:
+        specifier: ^0.0.1
+        version: 0.0.1
       tsc-alias:
         specifier: ^1.8.10
         version: 1.8.16
@@ -236,6 +239,9 @@ packages:
   path-type@4.0.0:
     resolution: {integrity: sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==}
     engines: {node: '>=8'}
+
+  perf_hooks@0.0.1:
+    resolution: {integrity: sha512-qG/D9iA4KDme+KF4vCObJy6Bouu3BlQnmJ8jPydVPm32NJBD9ZK1ZNgXSYaZKHkVC1sKSqUiLgFvAZPUiIEnBw==}
 
   picomatch@2.3.1:
     resolution: {integrity: sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==}
@@ -573,6 +579,8 @@ snapshots:
   normalize-path@3.0.0: {}
 
   path-type@4.0.0: {}
+
+  perf_hooks@0.0.1: {}
 
   picomatch@2.3.1: {}
 
