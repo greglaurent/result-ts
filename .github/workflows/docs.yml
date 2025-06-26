@@ -19,6 +19,12 @@ permissions:
   pages: write
   id-token: write
 
+# Prevent browser opening during CI
+env:
+  CI: true
+  NO_OPEN: true
+  DISABLE_OPENCOLLECTIVE: true
+
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
@@ -43,8 +49,15 @@ jobs:
         with:
           version: 10.12.1
 
+      - name: Configure npm to prevent browser opening
+        run: |
+          npm config set fund false
+          npm config set audit false
+          echo "BROWSER=none" >> $GITHUB_ENV
+          echo "DISABLE_OPENCOLLECTIVE=true" >> $GITHUB_ENV
+
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Type check
         run: pnpm typecheck
@@ -83,8 +96,15 @@ jobs:
         with:
           version: 10.12.1
 
+      - name: Configure npm to prevent browser opening
+        run: |
+          npm config set fund false
+          npm config set audit false
+          echo "BROWSER=none" >> $GITHUB_ENV
+          echo "DISABLE_OPENCOLLECTIVE=true" >> $GITHUB_ENV
+
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Generate documentation
         run: pnpm docs
