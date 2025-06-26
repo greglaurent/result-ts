@@ -14,12 +14,19 @@
   "excludeExternals": true,
   "readme": "README.md",
   "includeVersion": true,
-  "sort": ["source-order"],
+  "sort": [
+    "source-order"
+  ],
   "validation": {
     "invalidLink": true,
     "notExported": false
   },
-  "categoryOrder": ["Core", "Functional Operations", "Validation", "Utilities"],
+  "categoryOrder": [
+    "Core",
+    "Functional Operations",
+    "Validation",
+    "Utilities"
+  ],
   "cleanOutputDir": true,
   "treatWarningsAsErrors": false,
   "logLevel": "Verbose",
@@ -29,5 +36,10 @@
     "skipLibCheck": true
   },
   "plugin": [],
-  "intentionallyNotExported": ["OK", "ERR"]
+  "intentionallyNotExported": [
+    "OK",
+    "ERR"
+  ],
+  "githubPages": true,
+  "basePath": "/result-ts/"
 }
