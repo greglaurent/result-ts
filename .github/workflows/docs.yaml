@@ -1,7 +1,9 @@
-name: ResultTS Documentation
+name: Result TS Documentation
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch: # Allow manual triggering
 
@@ -11,7 +13,8 @@ permissions:
   id-token: write
 
 jobs:
-  docs:
+  # Validate docs generation (runs on PRs and main)
+  validate-docs:
     runs-on: ubuntu-latest
 
     steps:
@@ -37,10 +40,54 @@ jobs:
       - name: Generate documentation
         run: pnpm docs
 
-      - name: Upload to GitHub Pages
+      - name: Check docs were generated
+        run: |
+          if [ ! -d "docs" ] || [ -z "$(ls -A docs)" ]; then
+            echo "❌ Documentation was not generated or is empty"
+            exit 1
+          fi
+          echo "✅ Documentation generated successfully"
+
+      - name: Upload docs artifacts (for PR review)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-preview
+          path: docs/
+          retention-days: 7
+
+  # Deploy docs (only runs on main branch)
+  deploy-docs:
+    runs-on: ubuntu-latest
+    needs: validate-docs
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Generate documentation
+        run: pnpm docs
+
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
-        if: github.ref == 'refs/heads/main'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
-          cname: your-domain.com # Optional: if you have a custom domain
+          # cname: your-domain.com # Optional: if you have a custom domain
