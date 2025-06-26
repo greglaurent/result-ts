@@ -17,11 +17,13 @@
     "build": "pnpm clean && tsc && tsc-alias",
     "build:watch": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
     "clean": "rm -rf dist",
-    "typecheck": "tsc --noEmit",
     "dev": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
+    "docs": "typedoc",
+    "docs:serve": "typedoc --watch",
+    "lint": "echo \"Linting coming soon\" && exit 0",
     "prepublishOnly": "pnpm build",
     "test": "echo \"Tests coming soon\" && exit 0",
-    "lint": "echo \"Linting coming soon\" && exit 0"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "result",
@@ -87,6 +89,7 @@
   "devDependencies": {
     "concurrently": "^9.0.1",
     "tsc-alias": "^1.8.10",
+    "typedoc": "^0.28.5",
     "typescript": "^5.8.3",
     "zod": "^3.25.67"
   }
