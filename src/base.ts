@@ -1232,15 +1232,23 @@ export const toNullable = <T, E>(result: Result<T, E>): T | null => {
 
 /**
  * Factory function that creates an object containing all Result utilities.
- * This maintains backward compatibility while allowing individual function imports.
- * All functions reference the individual exports above for zero overhead.
+ * This maintains backward compatibility for legacy code.
+ * 
+ * - `import from 'result-ts'` → core essentials only
+ * - `import from 'result-ts/iter'` → core + iteration
+ * - `import from 'result-ts/batch'` → core + batch operations
+ * - `import from 'result-ts/utils'` → core + utilities
+ * - `import from 'result-ts/patterns'` → core + advanced patterns
+ * - `import from 'result-ts/schema'` → core + validation
  *
  * @example
  * ```typescript
+ * // Legacy (still supported)
  * const { ok, err, match, iter, batch } = createBaseResult();
  * 
- * // Or use individual imports for better tree-shaking:
- * import { ok, err, match, map, all } from './base';
+ * // Preferred (better tree-shaking)
+ * import { ok, err, match } from 'result-ts';
+ * import { map, pipe } from 'result-ts/iter';
  * ```
  *
  * @returns Object containing all Result utilities organized by category

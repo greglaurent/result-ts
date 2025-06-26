@@ -39,8 +39,8 @@
     "lint": "echo \"Linting coming soon\" && exit 0",
     "prepublishOnly": "pnpm build",
     "test": "vitest",
+    "test:bundle": "pnpm build && vitest run tests/bundle-size.test.ts",
     "test:run": "vitest run",
-    "test:size": "pnpm build && vitest run tests/bundle-size.test.ts",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --",
     "typecheck": "tsc --noEmit"
@@ -68,11 +68,6 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
-    "./minimal": {
-      "types": "./dist/minimal.d.ts",
-      "import": "./dist/minimal.js",
-      "require": "./dist/minimal.js"
-    },
     "./iter": {
       "types": "./dist/iter.d.ts",
       "import": "./dist/iter.js",
@@ -83,10 +78,20 @@
       "import": "./dist/batch.js",
       "require": "./dist/batch.js"
     },
-    "./core": {
-      "types": "./dist/core.d.ts",
-      "import": "./dist/core.js",
-      "require": "./dist/core.js"
+    "./utils": {
+      "types": "./dist/utils.d.ts",
+      "import": "./dist/utils.js",
+      "require": "./dist/utils.js"
+    },
+    "./patterns": {
+      "types": "./dist/patterns.d.ts",
+      "import": "./dist/patterns.js",
+      "require": "./dist/patterns.js"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js",
+      "require": "./dist/schema.js"
     }
   },
   "peerDependencies": {

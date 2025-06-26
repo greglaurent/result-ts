@@ -1,14 +1,16 @@
-// Direct imports - only what's actually used gets bundled
-export { ok, err, isOk, isErr, unwrap, unwrapOr, handle, handleAsync, handleWith, handleWithAsync, match } from "@/base";
-export type { Result, Ok, Err } from "@/base";
+// Main entry point - Core essentials only for optimal tree-shaking
+// Users get the minimum viable Result library by default
 
-// Export grouped objects without factory function
-import { map, mapAsync, mapErr, mapErrAsync, andThen, andThenAsync, pipe } from "@/base";
-import { all, allAsync, allSettledAsync, oks, errs, partition, partitionWith, analyze, findFirst, reduce, first } from "@/base";
-import { safe, safeAsync, yieldFn, zip, apply } from "@/base";
-import { inspect, tap, tapErr, fromNullable, toNullable } from "@/base";
+// Re-export all core essentials (11 functions)
+export * from "./core";
 
-export const iter = { map, mapAsync, mapErr, mapErrAsync, andThen, andThenAsync, pipe };
-export const batch = { all, allAsync, allSettledAsync, oks, errs, partition, partitionWith, analyze, findFirst, reduce, first };
-export const advanced = { safe, safeAsync, yieldFn, zip, apply };
-export const utils = { inspect, tap, tapErr, fromNullable, toNullable };
+/**
+ * This is the minimal Result library entry point.
+ * 
+ * For additional functionality, use layered imports:
+ * - `result-ts/iter` → adds data transformation operations
+ * - `result-ts/batch` → adds array processing operations  
+ * - `result-ts/utils` → adds debugging and conversion utilities
+ * - `result-ts/patterns` → adds advanced functional patterns
+ * - `result-ts/schema` → adds runtime validation with Zod
+ */

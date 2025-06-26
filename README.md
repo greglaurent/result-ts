@@ -126,12 +126,12 @@ const { firstOk, firstError } = batch.findFirst(results);
 
 ## 📊 Bundle Size Comparison
 
-| Import Strategy                                   | Bundle Size     | Dependencies   |
-| ------------------------------------------------- | --------------- | -------------- |
-| `import { ok, err, isOk } from 'result-ts'`       | **~1.2KB**      | None           |
-| `import { handle, iter, batch } from 'result-ts'` | **~4.8KB**      | None           |
-| Full core library                                 | **~12KB**       | None           |
-| With validation                                   | **~12KB + Zod** | Zod (optional) |
+| Import Strategy                                     | Bundle Size     | Dependencies   |
+| --------------------------------------------------- | --------------- | -------------- |
+| `import { ok, err, isOk, isErr } from 'result-ts/minimal'` | **137 bytes**   | None           |
+| `import { ok, err, handle } from 'result-ts'`      | **203 bytes**   | None           |
+| `import { ok, err, handle, iter, batch } from 'result-ts'` | **2.2KB**       | None           |
+| `import { validate } from 'result-ts/validation'`  | **2.2KB + Zod** | Zod (optional) |
 
 ## 🏗️ API Overview
 
