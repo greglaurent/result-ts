@@ -1,9 +1,29 @@
 {
-  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "noUnusedLocals": false, // ✅ Disable unused variable warnings
-    "noUnusedParameters": false, // ✅ Disable unused parameter warnings
-    "noEmit": true // ✅ Don't emit, just for testing
+    "target": "ES2020",
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "baseUrl": "..",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ],
+      "~/*": [
+        "src/*"
+      ]
+    },
+    "strict": true,
+    "noEmit": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
     "./*.test.ts",

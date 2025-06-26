@@ -38,7 +38,10 @@
     "docs:debug": "pnpm build && typedoc --logLevel Verbose",
     "lint": "echo \"Linting coming soon\" && exit 0",
     "prepublishOnly": "pnpm build",
-    "test": "echo \"Tests coming soon\" && exit 0",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -89,11 +92,14 @@
     }
   },
   "devDependencies": {
+    "@vitest/ui": "^3.2.4",
     "concurrently": "^9.0.1",
     "perf_hooks": "^0.0.1",
     "tsc-alias": "^1.8.10",
     "typedoc": "^0.28.5",
     "typescript": "^5.8.3",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4",
     "zod": "^3.25.67"
   }
 }
