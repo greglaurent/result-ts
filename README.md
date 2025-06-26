@@ -254,6 +254,8 @@ const errors = batch.errs(results);
 
 ## 📖 Documentation
 
+<!--
+
 - [API Reference](https://your-username.github.io/result-ts/)
 - [Performance Guide](./docs/performance.md)
 - [Migration from other libraries](./docs/migration.md)
@@ -262,6 +264,7 @@ const errors = batch.errs(results);
 ## 🤝 Contributing
 
 Contributions welcome! Please read our [Contributing Guide](./CONTRIBUTING.md).
+-->
 
 ## 📄 License
 

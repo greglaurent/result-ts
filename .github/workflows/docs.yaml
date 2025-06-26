@@ -2,7 +2,7 @@ name: Result TS Documentation
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/docs] # Added feat/docs branch for testing
   pull_request:
     branches: [main]
   workflow_dispatch: # Allow manual triggering
@@ -34,31 +34,45 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Type check
+        run: pnpm typecheck
+
       - name: Build project
         run: pnpm build
+
+      - name: Verify build output
+        run: |
+          echo "Checking build output..."
+          ls -la dist/
+          test -f dist/index.js || (echo "❌ dist/index.js not found" && exit 1)
+          test -f dist/index.d.ts || (echo "❌ dist/index.d.ts not found" && exit 1)
+          echo "✅ Build files verified"
 
       - name: Clean docs directory
         run: rm -rf docs
 
-      - name: Generate documentation
+      - name: Generate documentation (debug mode)
         run: |
-          echo "Generating TypeDoc documentation..."
-          pnpm docs
+          echo "Generating TypeDoc documentation with verbose logging..."
+          pnpm docs:debug
           echo "Documentation generation completed"
 
       - name: Check docs were generated
         run: |
           if [ ! -d "docs" ] || [ -z "$(ls -A docs)" ]; then
             echo "❌ Documentation was not generated or is empty"
+            echo "Current directory contents:"
             ls -la
+            echo "Checking if docs directory exists:"
+            ls -la docs/ || echo "docs directory not found"
             exit 1
           fi
           echo "✅ Documentation generated successfully"
           echo "Generated files:"
-          ls -la docs/
+          find docs/ -type f -name "*.html" | head -10
 
       - name: Upload docs artifacts (for PR review)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/feat/docs'
         uses: actions/upload-artifact@v4
         with:
           name: documentation-preview
@@ -90,9 +104,6 @@ jobs:
 
       - name: Build project
         run: pnpm build
-
-      - name: Clean docs directory
-        run: rm -rf docs
 
       - name: Generate documentation
         run: |
