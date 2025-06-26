@@ -1,6 +1,6 @@
 {
   "name": "result-ts",
-  "version": "0.3.0-beta",
+  "version": "0.3.1-beta",
   "description": "Result TS: The type safe result library for Typescript.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
