@@ -1,119 +1,272 @@
 # Result TS
 
-> The Type-Safe Result Library for TypeScript
+> The **Performance-First** Result Library for TypeScript
 
 [![npm version](https://badge.fury.io/js/result-ts.svg)](https://www.npmjs.com/package/result-ts)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
-[![Documentation](https://img.shields.io/badge/docs-TypeDoc-blue.svg)](https://your-username.github.io/result-ts/)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/result-ts)](https://bundlephobia.com/package/result-ts)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Installation
+**Why Result TS?** The only Result library built for **performance** without sacrificing **developer experience**.
+
+## ✨ Features
+
+- 🚀 **Performance-First** - Single-pass operations, zero-allocation loops, early-exit optimizations
+- 🎯 **Ergonomic Design** - User journey organization from beginner to advanced
+- 🔗 **Co-located Async** - `handle`/`handleAsync` right next to each other
+- 🌳 **Tree-Shakable** - Import only what you need (starts at ~1KB)
+- 🧩 **Modular Architecture** - Organized namespaces: `iter`, `batch`, `advanced`, `utils`
+- ✅ **Optional Zod Integration** - Runtime validation when you need it
+- 🦀 **Rust-Inspired** - Familiar patterns, TypeScript-native implementation
+
+## 📦 Installation
 
 ```bash
-
+# Core library (no dependencies)
 npm install result-ts
 
 # Optional: For validation features
 npm install zod
-
 ```
 
-## Features
-
-- 🎯 **Type-Safe Error Handling** - No more `try/catch` soup
-- 🧩 **Modular Architecture** - Import only what you need  
-- ✅ **Zod Integration** - Optional runtime validation
-- 🌳 **Tree-Shakable** - Minimal bundle impact
-- 🦀 **Rust-Inspired** - Familiar patterns for Rust developers
-
-## Quick Start
+## 🚀 Quick Start
 
 ```typescript
-import { Result, ok, err, isOk } from 'result-ts';
+import { ok, err, isOk, handle, iter, batch } from "result-ts";
 
+// Basic usage
 function divide(a: number, b: number): Result<number, string> {
   return b === 0 ? err("Division by zero") : ok(a / b);
 }
 
 const result = divide(10, 2);
 if (isOk(result)) {
-  console.log(result.value); // 5 - TypeScript sees this is a number.
+  console.log(result.value); // 5 - TypeScript knows this is a number
 }
+
+// Safe function execution
+const jsonResult = handle(() => JSON.parse(data));
+const apiResult = await handleAsync(() =>
+  fetch("/api/users").then((r) => r.json()),
+);
+
+// High-performance chaining
+const transformed = iter.pipe(
+  getUserById(1),
+  (user) => getProfile(user.id),
+  (profile) => enhanceProfile(profile),
+);
+
+// Efficient batch operations
+const stats = batch.analyze(results); // Single-pass analysis
+console.log(`${stats.okCount}/${stats.total} succeeded`);
 ```
 
-## Bundle Sizes
+## 🎯 Simple Design
 
-| Import Strategy | Bundle Size (min+gzip) | Dependencies | What's Included |
-|----------------|------------------------|--------------|-----------------|
-| `import { ok, err, isOk } from 'result-ts/core'` | **~1.2KB** | None | Basic Result operations |
-| `import { ok, err, map, andThen } from 'result-ts/core'` | **~2.1KB** | None | Core + functional operations |
-| `import { Result } from 'result-ts/core'` | **~3.4KB** | None | Full core factory (no validation) |
-| `import { ok, err, parseJson } from 'result-ts'` | **~15.8KB** | Zod | Core + JSON validation only |
-| `import { Result } from 'result-ts'` | **~16.2KB** | Zod | Full factory + validation |
-
-### Comparison with Alternatives
-
-| Library | Bundle Size | Modular | Validation |
-|---------|-------------|---------|------------|
-| **result-ts** (core) | **1.2KB** | ✅ | Optional |
-| **result-ts** (full) | **16.2KB** | ✅ | ✅ Zod |
-
-<!--
-
-## Bundle Sizes
-
-| Import Strategy | Bundle Size (min+gzip) | Dependencies | What's Included |
-|----------------|------------------------|--------------|-----------------|
-| `import { ok, err, isOk } from 'result-ts/core'` | **~1.2KB** | None | Basic Result operations |
-| `import { ok, err, map, andThen } from 'result-ts/core'` | **~2.1KB** | None | Core + functional operations |
-| `import { Result } from 'result-ts/core'` | **~3.4KB** | None | Full core factory (no validation) |
-| `import { ok, err, parseJson } from 'result-ts'` | **~15.8KB** | Zod | Core + JSON validation only |
-| `import { Result } from 'result-ts'` | **~16.2KB** | Zod | Full factory + validation |
-
-### Comparison with Alternatives
-
-| Library | Bundle Size | Modular | Validation |
-|---------|-------------|---------|------------|
-| **result-ts** (core) | **1.2KB** | ✅ | Optional |
-| **result-ts** (full) | **16.2KB** | ✅ | ✅ Zod |
-| neverthrow | 4.1KB | ❌ | ❌ |
-| ts-results | 3.8KB | ❌ | ❌ |
-| @trylonai/ts-result | 5.2KB | ❌ | ❌ |
-| oxide.ts | 2.9KB | ❌ | ❌ |
--->
-
-### Tree-Shaking Benefits
+**Beginner (Day 1)** - Core essentials:
 
 ```typescript
-// Lightweight - only imports what you need
-import { ok, err, map } from 'result-ts/core';     // ~1.8KB
-
-// vs importing everything
-import { Result } from 'neverthrow';                // ~4.1KB (no choice)
+import { ok, err, isOk, handle } from "result-ts";
 ```
 
-## API Documentation
+**Intermediate** - Data transformations:
 
-📚 Full API Documentation
+```typescript
+import { iter, batch } from "result-ts";
+iter.map(result, transform);
+batch.partition(results);
+```
 
-### Core Functions
+**Advanced** - Power features:
 
-ok(value) - Create success Result
+```typescript
+import { advanced } from "result-ts";
+advanced.safe(function* () {
+  const user = yield getUser(id);
+  const profile = yield getProfile(user.id);
+  return { user, profile };
+});
+```
 
-err(error) - Create error Result
+## ⚡ Performance Advantages
 
-map(result, fn) - Transform success value
+### Single-Pass Operations
 
-### Examples
+```typescript
+// ❌ Other libraries: Multiple iterations
+const successes = results.filter(isOk).map((r) => r.value); // 2 passes
+const errors = results.filter(isErr).map((r) => r.error); // 2 more passes
+const hasErrors = errors.length > 0; // Extra work
 
-Basic Usage
-[Link to examples/basic.md]
+// ✅ Result TS: Single pass
+const stats = batch.analyze(results); // 1 pass gets everything
+console.log(`Success rate: ${stats.okCount}/${stats.total}`);
+console.log(`Has errors: ${stats.hasErrors}`);
+```
 
-With Zod Validation
-[Link to examples/zod.md]
+### Zero-Allocation Loops
 
-Pattern Matching
-[Link to examples/patterns.md]
+```typescript
+// Creates 2 functions
+// ❌ Other libraries: Function allocations
+results.filter((r) => r.type === "Ok").map((r) => r.value);
 
-## License
+// Zero function allocation
+// ✅ Result TS: Manual loops, faster execution
+batch.oks(results);
+```
 
-MIT © Gregory Laurent
+### Early-Exit Optimizations
+
+```typescript
+// Find first success and first error with early exit
+const { firstOk, firstError } = batch.findFirst(results);
+```
+
+## 📊 Bundle Size Comparison
+
+| Import Strategy                                   | Bundle Size     | Dependencies   |
+| ------------------------------------------------- | --------------- | -------------- |
+| `import { ok, err, isOk } from 'result-ts'`       | **~1.2KB**      | None           |
+| `import { handle, iter, batch } from 'result-ts'` | **~4.8KB**      | None           |
+| Full core library                                 | **~12KB**       | None           |
+| With validation                                   | **~12KB + Zod** | Zod (optional) |
+
+## 🏗️ API Overview
+
+### Core (Root Level)
+
+```typescript
+// Essential functions everyone needs
+ok, err, isOk, isErr, unwrap, unwrapOr;
+handle, handleAsync, handleWith, handleWithAsync;
+match;
+```
+
+### `iter` - Iteration Operations / Data Transformation
+
+```typescript
+// Transform Results through pipelines
+iter.map(result, fn);
+iter.mapAsync(promise, fn);
+iter.pipe(result, op1, op2, op3); // Performance-optimized chaining
+iter.andThen(result, fn);
+```
+
+### `batch` - Array Operations
+
+```typescript
+// High-performance batch operations
+batch.all(results); // Convert Result[] to Result<T[]>
+batch.analyze(results); // Single-pass statistics
+batch.findFirst(results); // Early-exit first success/error
+batch.partitionWith(results); // Enhanced partition with metadata
+```
+
+### `advanced` - Power Features
+
+```typescript
+// Specialized functionality
+advanced.safe(generator); // Rust-style ? operator with generators
+advanced.zip(resultA, resultB); // Combine two Results
+advanced.apply(fn, value); // Applicative pattern
+```
+
+### `utils` - Helpers
+
+```typescript
+// Development and conversion utilities
+utils.inspect(result, onOk, onErr); // Debug Results
+utils.fromNullable(value); // Convert nullable to Result
+utils.tap(result, fn); // Side effects on success
+```
+
+## 🔧 Validation (Optional)
+
+```bash
+npm install zod  # Required for validation features
+```
+
+```typescript
+import { validate, schemas, parse } from "result-ts/validation";
+
+// Core validation
+const userResult = validate(data, userSchema);
+const asyncResult = await validateAsync(data, userSchema);
+
+// Schema builders
+const userResultSchema = schemas.stringError(userSchema);
+
+// JSON parsing with validation
+const parsed = parse.json(jsonString, userSchema);
+```
+
+## 📚 Examples
+
+### Error Handling Patterns
+
+```typescript
+const processUser = (id: number) =>
+  iter.pipe(
+    getUserById(id),
+    (user) => validateUser(user),
+    (user) => enrichUserData(user),
+    (user) => saveUser(user),
+  );
+
+// Pattern matching
+const message = match(result, {
+  Ok: (value) => `Success: ${value}`,
+  Err: (error) => `Failed: ${error}`,
+});
+```
+
+### Async Operations
+
+```typescript
+// Handle async operations safely
+const apiResult = await handleAsync(async () => {
+  const response = await fetch("/api/data");
+  return response.json();
+});
+
+// Transform async Results
+const processed = await iter.mapAsync(
+  fetchUser(id),
+  async (user) => await enrichUser(user),
+);
+```
+
+### Batch Processing
+
+```typescript
+const results = await Promise.all([fetchUser(1), fetchUser(2), fetchUser(3)]);
+
+// Get comprehensive stats in one pass
+const analysis = batch.analyze(results);
+console.log(`Loaded ${analysis.okCount} users, ${analysis.errorCount} failed`);
+
+// Extract successes efficiently
+const users = batch.oks(results);
+const errors = batch.errs(results);
+```
+
+## 📖 Documentation
+
+- [API Reference](https://your-username.github.io/result-ts/)
+- [Performance Guide](./docs/performance.md)
+- [Migration from other libraries](./docs/migration.md)
+- [Advanced Patterns](./docs/patterns.md)
+
+## 🤝 Contributing
+
+Contributions welcome! Please read our [Contributing Guide](./CONTRIBUTING.md).
+
+## 📄 License
+
+MIT © [Gregory Laurent](https://github.com/your-username)
+
+---
+
+**Built for developers who want both performance and great DX** 🚀
