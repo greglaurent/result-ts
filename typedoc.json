@@ -1,5 +1,11 @@
 {
-  "entryPoints": ["src/index.ts"],
+  "entryPoints": [
+    "src/index.ts",
+    "src/core.ts",
+    "src/validation.ts",
+    "src/base.ts"
+  ],
+  "entryPointStrategy": "expand",
   "out": "docs",
   "theme": "default",
   "name": "result-ts",
@@ -11,11 +17,17 @@
   "sort": ["source-order"],
   "validation": {
     "invalidLink": true,
-    "notExported": true
+    "notExported": false
   },
   "categoryOrder": ["Core", "Functional Operations", "Validation", "Utilities"],
   "cleanOutputDir": true,
   "treatWarningsAsErrors": false,
-  "logLevel": "Info",
-  "skipErrorChecking": false
+  "logLevel": "Verbose",
+  "skipErrorChecking": false,
+  "tsconfig": "tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true
+  },
+  "plugin": [],
+  "intentionallyNotExported": ["OK", "ERR"]
 }
