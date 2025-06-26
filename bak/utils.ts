@@ -1,11 +1,23 @@
 // result-ts/utils - Core essentials + utility functions
 // Provides debugging, side effects, and conversion utilities
 
-// Re-export all core essentials (11 functions)
-export * from "./core";
+// Core Result creation and type guards
+export { ok, err, isOk, isErr } from "@/base";
 
-// Add utility functions - debugging, side effects, conversions
+// Core Result utilities  
+export { unwrap, unwrapOr } from "@/base";
+
+// Safe function execution
+export { handle, handleAsync, handleWith, handleWithAsync } from "@/base";
+
+// Pattern matching
+export { match } from "@/base";
+
+// Utility functions - debugging, side effects, conversions
 export { inspect, tap, tapErr, fromNullable, toNullable } from "@/base";
+
+// Types
+export type { Result, Ok, Err } from "@/base";
 
 /**
  * This entry point includes core essentials + utility functions.
