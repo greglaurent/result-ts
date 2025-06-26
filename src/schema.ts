@@ -10,7 +10,6 @@ export * from "./core";
 const OK_VALUE = "Ok" as const;
 const ERR_VALUE = "Err" as const;
 
-// Import individual functions for validation logic
 import { ok, err, type Result } from "@/base";
 
 // =============================================================================
