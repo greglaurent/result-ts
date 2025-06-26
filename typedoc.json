@@ -1,7 +1,5 @@
 {
-  "entryPoints": [
-    "src/index.ts"
-  ],
+  "entryPoints": ["src/index.ts"],
   "out": "docs",
   "theme": "default",
   "name": "result-ts",
@@ -10,17 +8,14 @@
   "excludeExternals": true,
   "readme": "README.md",
   "includeVersion": true,
-  "sort": [
-    "source-order"
-  ],
+  "sort": ["source-order"],
   "validation": {
     "invalidLink": true,
     "notExported": true
   },
-  "categoryOrder": [
-    "Core",
-    "Functional Operations",
-    "Validation",
-    "Utilities"
-  ]
+  "categoryOrder": ["Core", "Functional Operations", "Validation", "Utilities"],
+  "cleanOutputDir": true,
+  "treatWarningsAsErrors": false,
+  "logLevel": "Info",
+  "skipErrorChecking": false
 }
