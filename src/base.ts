@@ -14,6 +14,7 @@ interface Err<E> {
 type Result<T, E = unknown> = Ok<T> | Err<E>;
 
 export const createBaseResult = () => ({
+  // CORE ESSENTIALS (Root Level)
   ok: <T>(value: T): Ok<T> => ({
     type: OK,
     value,
@@ -24,7 +25,6 @@ export const createBaseResult = () => ({
     error,
   }),
 
-  // Type guards
   isOk: <T, E>(result: Result<T, E>): result is Ok<T> => result.type === OK,
 
   isErr: <T, E>(result: Result<T, E>): result is Err<E> => result.type === ERR,
@@ -34,17 +34,14 @@ export const createBaseResult = () => ({
 
     const error = result.error;
 
-    // If it's already an Error, throw it directly
     if (error instanceof Error) {
       throw error;
     }
 
-    // If it's a string, use it as the message
     if (typeof error === "string") {
       throw new Error(error);
     }
 
-    // For other types, convert safely without JSON.stringify
     throw new Error(`Unwrap failed: ${String(error)}`);
   },
 
@@ -55,6 +52,18 @@ export const createBaseResult = () => ({
   handle: <T>(fn: () => T): Result<T, string> => {
     try {
       return { type: OK, value: fn() };
+    } catch (error) {
+      return {
+        type: ERR,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  handleAsync: async <T>(fn: () => Promise<T>): Promise<Result<T, string>> => {
+    try {
+      const value = await fn();
+      return { type: OK, value };
     } catch (error) {
       return {
         type: ERR,
@@ -74,7 +83,18 @@ export const createBaseResult = () => ({
     }
   },
 
-  // Pattern matching support
+  handleWithAsync: async <T, E>(
+    fn: () => Promise<T>,
+    errorMapper: (error: unknown) => E,
+  ): Promise<Result<T, E>> => {
+    try {
+      const value = await fn();
+      return { type: OK, value };
+    } catch (error) {
+      return { type: ERR, error: errorMapper(error) };
+    }
+  },
+
   match: <T, U, V, E>(
     result: Result<T, E>,
     handlers: {
@@ -87,37 +107,7 @@ export const createBaseResult = () => ({
       : handlers.Err(result.error);
   },
 
-  safe: <T, E>(
-    generator: () => Generator<Result<unknown, E>, T, unknown>,
-  ): Result<T, E> => {
-    const gen = generator();
-    try {
-      let current = gen.next();
-      while (!current.done) {
-        const result = current.value as Result<unknown, E>;
-        if (result.type === ERR) {
-          try {
-            gen.return(undefined as T);
-          } catch {
-            // Just ignore cleanup errors - don't try again!
-          }
-          return { type: ERR, error: result.error };
-        }
-        current = gen.next(result.value);
-      }
-      return { type: OK, value: current.value };
-    } catch (error) {
-      try {
-        gen.return(undefined as T);
-      } catch {
-        // intentionally ignore errors
-      }
-      throw error;
-    }
-  },
-
-  yieldFn: <T, E>(result: Result<T, E>) => result,
-
+  // ITER OPERATIONS
   iter: {
     map: <T, U, E>(
       result: Result<T, E>,
@@ -126,6 +116,18 @@ export const createBaseResult = () => ({
       return result.type === OK
         ? { type: OK, value: mapper(result.value) }
         : result;
+    },
+
+    mapAsync: async <T, U, E>(
+      promise: Promise<Result<T, E>>,
+      mapper: (value: T) => U | Promise<U>,
+    ): Promise<Result<U, E>> => {
+      const result = await promise;
+      if (result.type === OK) {
+        const mapped = await mapper(result.value);
+        return { type: OK, value: mapped };
+      }
+      return result;
     },
 
     mapErr: <T, E, F>(
@@ -137,6 +139,18 @@ export const createBaseResult = () => ({
         : result;
     },
 
+    mapErrAsync: async <T, E, F>(
+      promise: Promise<Result<T, E>>,
+      mapper: (error: E) => F | Promise<F>,
+    ): Promise<Result<T, F>> => {
+      const result = await promise;
+      if (result.type === ERR) {
+        const mapped = await mapper(result.error);
+        return { type: ERR, error: mapped };
+      }
+      return result;
+    },
+
     andThen: <T, U, E>(
       result: Result<T, E>,
       mapper: (value: T) => Result<U, E>,
@@ -144,7 +158,14 @@ export const createBaseResult = () => ({
       return result.type === OK ? mapper(result.value) : result;
     },
 
-    // Lightweight pipe function for performance-critical chaining
+    andThenAsync: async <T, U, E>(
+      promise: Promise<Result<T, E>>,
+      mapper: (value: T) => Promise<Result<U, E>>,
+    ): Promise<Result<U, E>> => {
+      const result = await promise;
+      return result.type === OK ? await mapper(result.value) : result;
+    },
+
     pipe: <T, E>(
       initialResult: Result<T, E>,
       ...operations: Array<(value: any) => Result<any, E>>
@@ -160,7 +181,8 @@ export const createBaseResult = () => ({
     },
   },
 
-  collections: {
+  // BATCH OPERATIONS
+  batch: {
     all: <T, E>(results: Array<Result<T, E>>): Result<T[], E> => {
       const values = [];
       for (const result of results) {
@@ -170,6 +192,40 @@ export const createBaseResult = () => ({
         values.push(result.value);
       }
       return { type: OK, value: values };
+    },
+
+    allAsync: async <T, E>(
+      promises: Array<Promise<Result<T, E>>>,
+    ): Promise<Result<T[], E>> => {
+      const results = await Promise.all(promises);
+      const values = [];
+
+      for (const result of results) {
+        if (result.type === ERR) {
+          return result;
+        }
+        values.push(result.value);
+      }
+
+      return { type: OK, value: values };
+    },
+
+    allSettledAsync: async <T, E>(
+      promises: Array<Promise<Result<T, E>>>,
+    ): Promise<{ oks: T[]; errors: E[] }> => {
+      const results = await Promise.all(promises);
+      const oks = [];
+      const errors = [];
+
+      for (const result of results) {
+        if (result.type === OK) {
+          oks.push(result.value);
+        } else {
+          errors.push(result.error);
+        }
+      }
+
+      return { oks, errors };
     },
 
     oks: <T, E>(results: Array<Result<T, E>>) => {
@@ -209,7 +265,6 @@ export const createBaseResult = () => ({
       return { oks, errors };
     },
 
-    // Enhanced partition with metadata (single iteration)
     partitionWith: <T, E>(
       results: Array<Result<T, E>>,
     ): {
@@ -239,7 +294,6 @@ export const createBaseResult = () => ({
       };
     },
 
-    // Lightweight stats without value extraction
     analyze: <T, E>(
       results: Array<Result<T, E>>,
     ): {
@@ -269,7 +323,6 @@ export const createBaseResult = () => ({
       };
     },
 
-    // Early-exit first element finder
     findFirst: <T, E>(
       results: Array<Result<T, E>>,
     ): {
@@ -294,7 +347,6 @@ export const createBaseResult = () => ({
           errorIndex = i;
         }
 
-        // Early exit if we found both
         if (firstOk !== undefined && firstError !== undefined) {
           break;
         }
@@ -303,7 +355,6 @@ export const createBaseResult = () => ({
       return { firstOk, firstError, okIndex, errorIndex };
     },
 
-    // General-purpose single-pass reducer
     reduce: <T, E, Acc>(
       results: Array<Result<T, E>>,
       reducer: {
@@ -341,32 +392,38 @@ export const createBaseResult = () => ({
     },
   },
 
-  async: {
-    handle: async <T>(fn: () => Promise<T>): Promise<Result<T, string>> => {
+  // ADVANCED FEATURES
+  advanced: {
+    safe: <T, E>(
+      generator: () => Generator<Result<unknown, E>, T, unknown>,
+    ): Result<T, E> => {
+      const gen = generator();
       try {
-        const value = await fn();
-        return { type: OK, value };
+        let current = gen.next();
+        while (!current.done) {
+          const result = current.value as Result<unknown, E>;
+          if (result.type === ERR) {
+            try {
+              gen.return(undefined as T);
+            } catch {
+              // Just ignore cleanup errors
+            }
+            return { type: ERR, error: result.error };
+          }
+          current = gen.next(result.value);
+        }
+        return { type: OK, value: current.value };
       } catch (error) {
-        return {
-          type: ERR,
-          error: error instanceof Error ? error.message : "Unknown error",
-        };
+        try {
+          gen.return(undefined as T);
+        } catch {
+          // intentionally ignore errors
+        }
+        throw error;
       }
     },
 
-    handleWith: async <T, E>(
-      fn: () => Promise<T>,
-      errorMapper: (error: unknown) => E,
-    ): Promise<Result<T, E>> => {
-      try {
-        const value = await fn();
-        return { type: OK, value };
-      } catch (error) {
-        return { type: ERR, error: errorMapper(error) };
-      }
-    },
-
-    safe: async <T, E>(
+    safeAsync: async <T, E>(
       generator: () => AsyncGenerator<Result<unknown, E>, T, unknown>,
     ): Promise<Result<T, E>> => {
       const gen = generator();
@@ -391,77 +448,52 @@ export const createBaseResult = () => ({
         } catch {
           // Just ignore cleanup errors
         }
-        throw error; // This is outside the cleanup try/catch
+        throw error;
       }
     },
 
-    map: async <T, U, E>(
-      promise: Promise<Result<T, E>>,
-      mapper: (value: T) => U | Promise<U>,
-    ): Promise<Result<U, E>> => {
-      const result = await promise;
-      if (result.type === OK) {
-        const mapped = await mapper(result.value);
-        return { type: OK, value: mapped };
-      }
-      return result;
-    },
+    yieldFn: <T, E>(result: Result<T, E>) => result,
 
-    mapErr: async <T, E, F>(
-      promise: Promise<Result<T, E>>,
-      mapper: (error: E) => F | Promise<F>,
-    ): Promise<Result<T, F>> => {
-      const result = await promise;
-      if (result.type === ERR) {
-        const mapped = await mapper(result.error);
-        return { type: ERR, error: mapped };
-      }
-      return result;
-    },
-
-    andThen: async <T, U, E>(
-      promise: Promise<Result<T, E>>,
-      mapper: (value: T) => Promise<Result<U, E>>,
-    ): Promise<Result<U, E>> => {
-      const result = await promise;
-      return result.type === OK ? await mapper(result.value) : result;
-    },
-
-    all: async <T, E>(
-      promises: Array<Promise<Result<T, E>>>,
-    ): Promise<Result<T[], E>> => {
-      const results = await Promise.all(promises);
-      const values = [];
-
-      for (const result of results) {
-        if (result.type === ERR) {
-          return result; // Return first error
-        }
-        values.push(result.value);
+    zip: <T, U, E>(
+      resultA: Result<T, E>,
+      resultB: Result<U, E>,
+    ): Result<[T, U], E> => {
+      if (resultA.type === OK && resultB.type === OK) {
+        return { type: OK, value: [resultA.value, resultB.value] };
       }
 
-      return { type: OK, value: values };
-    },
-
-    allSettled: async <T, E>(
-      promises: Array<Promise<Result<T, E>>>,
-    ): Promise<{ oks: T[]; errors: E[] }> => {
-      const results = await Promise.all(promises);
-      const oks = [];
-      const errors = [];
-
-      for (const result of results) {
-        if (result.type === OK) {
-          oks.push(result.value);
-        } else {
-          errors.push(result.error);
-        }
+      if (resultA.type === ERR) {
+        return { type: ERR, error: resultA.error };
       }
 
-      return { oks, errors };
+      if (resultB.type === ERR) {
+        return { type: ERR, error: resultB.error };
+      }
+
+      throw new Error("Unreachable: both results cannot be Ok here");
+    },
+
+    apply: <T, U, E>(
+      resultFn: Result<(value: T) => U, E>,
+      resultValue: Result<T, E>,
+    ): Result<U, E> => {
+      if (resultFn.type === OK && resultValue.type === OK) {
+        return { type: OK, value: resultFn.value(resultValue.value) };
+      }
+
+      if (resultFn.type === ERR) {
+        return { type: ERR, error: resultFn.error };
+      }
+
+      if (resultValue.type === ERR) {
+        return { type: ERR, error: resultValue.error };
+      }
+
+      throw new Error("Unreachable: both results cannot be Ok here");
     },
   },
 
+  // UTILITIES
   utils: {
     inspect: <T, E>(
       result: Result<T, E>,
@@ -504,47 +536,6 @@ export const createBaseResult = () => ({
 
     toNullable: <T, E>(result: Result<T, E>): T | null => {
       return result.type === OK ? result.value : null;
-    },
-
-    zip: <T, U, E>(
-      resultA: Result<T, E>,
-      resultB: Result<U, E>,
-    ): Result<[T, U], E> => {
-      if (resultA.type === OK && resultB.type === OK) {
-        return { type: OK, value: [resultA.value, resultB.value] };
-      }
-
-      if (resultA.type === ERR) {
-        return { type: ERR, error: resultA.error };
-      }
-
-      if (resultB.type === ERR) {
-        return { type: ERR, error: resultB.error };
-      }
-
-      // This should never happen, but TypeScript requires it
-      throw new Error("Unreachable: both results cannot be Ok here");
-    },
-
-    apply: <T, U, E>(
-      resultFn: Result<(value: T) => U, E>,
-      resultValue: Result<T, E>,
-    ): Result<U, E> => {
-      if (resultFn.type === OK && resultValue.type === OK) {
-        return { type: OK, value: resultFn.value(resultValue.value) };
-      }
-
-      // Handle errors with explicit type checking
-      if (resultFn.type === ERR) {
-        return { type: ERR, error: resultFn.error };
-      }
-
-      if (resultValue.type === ERR) {
-        return { type: ERR, error: resultValue.error };
-      }
-
-      // This should never happen, but TypeScript requires it
-      throw new Error("Unreachable: both results cannot be Ok here");
     },
   },
 });
