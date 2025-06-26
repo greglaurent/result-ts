@@ -1,9 +1,13 @@
 {
   "name": "result-ts",
   "version": "0.3.1-beta",
-  "description": "Result TS: The type safe result library for Typescript.",
+  "description": "The performance-first Result library with comprehensive utilities and zero overhead.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "files": [
     "dist/**/*",
     "README.md",
@@ -15,21 +19,40 @@
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "dev": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "test": "echo \"Tests coming soon\" && exit 0",
+    "lint": "echo \"Linting coming soon\" && exit 0"
   },
   "keywords": [
     "result",
-    "rust",
     "error-handling",
     "typescript",
-    "zod",
+    "performance",
+    "functional-programming",
+    "rust-style",
+    "type-safe",
+    "zero-overhead",
+    "async",
     "validation",
-    "functional",
-    "modular",
-    "type-safe"
+    "zod",
+    "fp",
+    "monad",
+    "either"
   ],
-  "author": "Gregory Laurent",
+  "author": {
+    "name": "Gregory Laurent",
+    "email": "your-email@example.com",
+    "url": "https://your-website.com"
+  },
   "license": "MIT",
+  "homepage": "https://github.com/your-username/result-ts#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/result-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/result-ts/issues"
+  },
   "packageManager": "pnpm@10.12.1",
   "exports": {
     ".": {
