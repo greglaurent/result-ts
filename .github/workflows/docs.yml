@@ -53,7 +53,7 @@ jobs:
         run: |
           npm config set fund false
           npm config set audit false
-          echo "BROWSER=none" >> $GITHUB_ENV
+          echo "BROWSER=true" >> $GITHUB_ENV
           echo "DISABLE_OPENCOLLECTIVE=true" >> $GITHUB_ENV
 
       - name: Install dependencies
