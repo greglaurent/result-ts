@@ -2,11 +2,11 @@
 name: Documentation
 
 on:
-  # Runs on pushes targeting the default branch and feat/docs
+  # Runs on pushes targeting the default branch
   push:
-    branches: ["main", "feat/docs"]
+    branches: ["main"]
 
-  # Runs on pull requests targeting main
+  # Runs on ALL pull requests targeting main
   pull_request:
     branches: ["main"]
 
