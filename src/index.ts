@@ -1,14 +1,26 @@
-export type { Result, Ok, Err } from '@/base';
+// Main package - no Zod dependency
+import { createBaseResult } from "@/base";
 
-export * from '@/core';
-
-import { Result as ValidResult } from '@/validation';
+const base = createBaseResult();
 
 export const {
-  schema,
-  string: stringSchema,
-  number: numberSchema,
-  error: errorSchema,
-  parseJson,
-  parseResult
-} = ValidResult;
+  // Root level
+  ok,
+  err,
+  isOk,
+  isErr,
+  unwrap,
+  unwrapOr,
+  handle,
+  handleAsync,
+  handleWith,
+  handleWithAsync,
+  match,
+  // Namespaces
+  iter,
+  batch,
+  advanced,
+  utils,
+} = base;
+
+export type { Result, Ok, Err } from "@/base";
