@@ -181,37 +181,9 @@ export const andThenAsync = async <T, U, E>(
  * ```
  *
  * @param initialResult - Starting Result value
- * @param operations - Array of functions that transform values to new Results
+ * @param operations - Functions that transform values to new Results
  * @returns Final Result or first error encountered
  */
-// Type-safe overloads for common cases
-export function pipe<T, U, E>(
-  initialResult: Result<T, E>,
-  op1: (value: T) => Result<U, E>,
-): Result<U, E>;
-
-export function pipe<T, U, V, E>(
-  initialResult: Result<T, E>,
-  op1: (value: T) => Result<U, E>,
-  op2: (value: U) => Result<V, E>,
-): Result<V, E>;
-
-export function pipe<T, U, V, W, E>(
-  initialResult: Result<T, E>,
-  op1: (value: T) => Result<U, E>,
-  op2: (value: U) => Result<V, E>,
-  op3: (value: V) => Result<W, E>,
-): Result<W, E>;
-
-export function pipe<T, U, V, W, X, E>(
-  initialResult: Result<T, E>,
-  op1: (value: T) => Result<U, E>,
-  op2: (value: U) => Result<V, E>,
-  op3: (value: V) => Result<W, E>,
-  op4: (value: W) => Result<X, E>,
-): Result<X, E>;
-
-// Fallback for longer chains
 export function pipe<T, E>(
   initialResult: Result<T, E>,
   ...operations: Array<(value: any) => Result<any, E>>
