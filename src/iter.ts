@@ -2,10 +2,10 @@
 // Provides data transformation and chaining capabilities
 
 // Re-export all core essentials from core module
-export * from "./core";
+export * from "@/core";
 
 // Import types and constants for iteration implementations
-import { OK, ERR, type Result } from "./types";
+import { OK, ERR, type Result } from "@/types";
 
 // =============================================================================
 // ITERATION OPERATIONS (Individual Exports)

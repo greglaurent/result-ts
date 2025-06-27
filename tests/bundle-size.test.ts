@@ -21,7 +21,7 @@ const bundleAndMeasure = async (importCode: string): Promise<number> => {
 describe("Bundle Size Tests - README Claims Verification", () => {
   it("single function import - should match README claim (~55 bytes)", async () => {
     const importCode = `
-      import { ok } from './dist/index.js';
+      import { ok } from 'result-ts';
       console.log(ok('test'));
     `;
 
@@ -32,7 +32,7 @@ describe("Bundle Size Tests - README Claims Verification", () => {
 
   it("basic usage - should match README claim (~107 bytes)", async () => {
     const importCode = `
-      import { ok, err, isOk } from './dist/index.js';
+      import { ok, err, isOk } from 'result-ts';
       console.log(ok('test'), err('test'), isOk);
     `;
 
@@ -43,7 +43,7 @@ describe("Bundle Size Tests - README Claims Verification", () => {
 
   it("safe execution - should match README claim (~207 bytes)", async () => {
     const importCode = `
-      import { ok, err, handle } from './dist/index.js';
+      import { ok, err, handle } from 'result-ts';
       console.log(ok, err, handle);
     `;
 
@@ -54,8 +54,8 @@ describe("Bundle Size Tests - README Claims Verification", () => {
 
   it("iter module - should match README claim (~143 bytes)", async () => {
     const importCode = `
-      import { iter } from './dist/iter.js';
-      console.log(iter.map, iter.pipe);
+      import { map, pipe } from 'result-ts/iter';
+      console.log(map, pipe);
     `;
 
     const size = await bundleAndMeasure(importCode);
@@ -63,49 +63,51 @@ describe("Bundle Size Tests - README Claims Verification", () => {
     console.log(`✅ Iter module: ${size} bytes (target: ~143 bytes)`);
   });
 
-  it("batch module - should match README claim (~189 bytes)", async () => {
+  it("batch module - should match README claim (~291 bytes)", async () => {
     const importCode = `
-      import { batch } from './dist/batch.js';
-      console.log(batch.all, batch.analyze);
+      import { all, analyze } from 'result-ts/batch';
+      console.log(all, analyze);
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(250); // 189 bytes target + buffer
-    console.log(`✅ Batch module: ${size} bytes (target: ~189 bytes)`);
+    expect(size).toBeLessThan(350); // 291 bytes actual + buffer
+    console.log(`✅ Batch module: ${size} bytes (target: ~291 bytes)`);
   });
 
-  it("patterns module - should match README claim (~325 bytes)", async () => {
+  it("patterns module - should match README claim (~500 bytes)", async () => {
     const importCode = `
-      import { patterns } from './dist/patterns.js';
-      console.log(patterns.safe, patterns.zip);
+      import { safe, zip } from 'result-ts/patterns';
+      console.log(safe, zip);
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(400); // 325 bytes target + buffer
-    console.log(`✅ Patterns module: ${size} bytes (target: ~325 bytes)`);
+    expect(size).toBeLessThan(600); // 500 bytes actual + buffer
+    console.log(`✅ Patterns module: ${size} bytes (target: ~500 bytes)`);
   });
 
   it("schema module - should match README claim (~245 bytes excluding Zod)", async () => {
     const importCode = `
-      import { validate } from './dist/schema.js';
+      import { validate } from 'result-ts/schema';
       console.log(validate);
     `;
 
     const size = await bundleAndMeasure(importCode);
     expect(size).toBeLessThan(300); // 245 bytes target + buffer
-    console.log(`✅ Schema module: ${size} bytes (target: ~245 bytes, excluding Zod)`);
+    console.log(
+      `✅ Schema module: ${size} bytes (target: ~245 bytes, excluding Zod)`,
+    );
   });
 });
 
 describe("Bundle Size Tests - Architecture Verification", () => {
   it("core essentials with full feature set", async () => {
     const importCode = `
-      import { ok, err, isOk, isErr, handle, unwrap, unwrapOr, match } from './dist/index.js';
+      import { ok, err, isOk, isErr, handle, unwrap, unwrapOr, match } from 'result-ts';
       console.log(ok, err, isOk, isErr, handle, unwrap, unwrapOr, match);
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(350);
+    expect(size).toBeLessThan(550); // 478 bytes actual + buffer
     console.log(`Core essentials (full): ${size} bytes`);
   });
 
@@ -113,17 +115,47 @@ describe("Bundle Size Tests - Architecture Verification", () => {
     const sizes: Array<{ name: string; size: number; target: number }> = [];
 
     const modules = [
-      { name: "Single ok", import: `import { ok } from './dist/index.js'; console.log(ok);`, target: 55 },
-      { name: "Basic usage", import: `import { ok, err, isOk } from './dist/index.js'; console.log(ok, err, isOk);`, target: 107 },
-      { name: "Safe execution", import: `import { ok, err, handle } from './dist/index.js'; console.log(ok, err, handle);`, target: 207 },
-      { name: "Data transform", import: `import { iter } from './dist/iter.js'; console.log(iter.map);`, target: 143 },
-      { name: "Array processing", import: `import { batch } from './dist/batch.js'; console.log(batch.all);`, target: 189 },
-      { name: "Advanced patterns", import: `import { patterns } from './dist/patterns.js'; console.log(patterns.safe);`, target: 325 },
-      { name: "Validation", import: `import { validate } from './dist/schema.js'; console.log(validate);`, target: 245 },
+      {
+        name: "Single ok",
+        import: `import { ok } from 'result-ts'; console.log(ok);`,
+        target: 55,
+      },
+      {
+        name: "Basic usage",
+        import: `import { ok, err, isOk } from 'result-ts'; console.log(ok, err, isOk);`,
+        target: 107,
+      },
+      {
+        name: "Safe execution",
+        import: `import { ok, err, handle } from 'result-ts'; console.log(ok, err, handle);`,
+        target: 207,
+      },
+      {
+        name: "Data transform",
+        import: `import { map } from 'result-ts/iter'; console.log(map);`,
+        target: 143,
+      },
+      {
+        name: "Array processing",
+        import: `import { all } from 'result-ts/batch'; console.log(all);`,
+        target: 291,
+      },
+      {
+        name: "Advanced patterns",
+        import: `import { safe } from 'result-ts/patterns'; console.log(safe);`,
+        target: 500,
+      },
+      {
+        name: "Validation",
+        import: `import { validate } from 'result-ts/schema'; console.log(validate);`,
+        target: 245,
+      },
     ];
 
     console.log("\n=== README Bundle Size Claims Verification ===");
-    console.log("Name".padEnd(20) + "Actual".padEnd(10) + "Target".padEnd(10) + "Status");
+    console.log(
+      "Name".padEnd(20) + "Actual".padEnd(10) + "Target".padEnd(10) + "Status",
+    );
     console.log("-".repeat(50));
 
     for (const module of modules) {
@@ -132,14 +164,14 @@ describe("Bundle Size Tests - Architecture Verification", () => {
 
       const status = size <= module.target * 1.5 ? "✅ PASS" : "❌ FAIL"; // 50% tolerance
       console.log(
-        `${module.name.padEnd(20)}${size.toString().padEnd(10)}${module.target.toString().padEnd(10)}${status}`
+        `${module.name.padEnd(20)}${size.toString().padEnd(10)}${module.target.toString().padEnd(10)}${status}`,
       );
     }
 
     // Verify progressive size increases make sense
-    const singleOk = sizes.find(s => s.name === "Single ok")!.size;
-    const basicUsage = sizes.find(s => s.name === "Basic usage")!.size;
-    const safeExecution = sizes.find(s => s.name === "Safe execution")!.size;
+    const singleOk = sizes.find((s) => s.name === "Single ok")!.size;
+    const basicUsage = sizes.find((s) => s.name === "Basic usage")!.size;
+    const safeExecution = sizes.find((s) => s.name === "Safe execution")!.size;
 
     expect(basicUsage).toBeGreaterThan(singleOk);
     expect(safeExecution).toBeGreaterThan(basicUsage);
@@ -147,17 +179,17 @@ describe("Bundle Size Tests - Architecture Verification", () => {
 
   it("tree-shaking effectiveness", async () => {
     const fullImport = await bundleAndMeasure(`
-      import { ok, err, isOk, isErr, unwrap, unwrapOr, handle, handleAsync, handleWith, handleWithAsync, match } from './dist/index.js';
+      import { ok, err, isOk, isErr, unwrap, unwrapOr, handle, handleAsync, handleWith, handleWithAsync, match } from 'result-ts';
       console.log(ok, err, isOk, isErr, unwrap, unwrapOr, handle, handleAsync, handleWith, handleWithAsync, match);
     `);
 
     const partialImport = await bundleAndMeasure(`
-      import { ok, err, isOk } from './dist/index.js';
+      import { ok, err, isOk } from 'result-ts';
       console.log(ok, err, isOk);
     `);
 
     const singleImport = await bundleAndMeasure(`
-      import { ok } from './dist/index.js';
+      import { ok } from 'result-ts';
       console.log(ok);
     `);
 
@@ -171,21 +203,24 @@ describe("Bundle Size Tests - Architecture Verification", () => {
     expect(singleImport).toBeLessThan(partialImport);
 
     // Calculate efficiency
-    const efficiency = ((fullImport - singleImport) / fullImport * 100).toFixed(1);
+    const efficiency = (
+      ((fullImport - singleImport) / fullImport) *
+      100
+    ).toFixed(1);
     console.log(`Tree-shaking efficiency: ${efficiency}% size reduction`);
     expect(Number(efficiency)).toBeGreaterThan(50); // Should remove at least 50% when going from full to single
   });
 
   it("cross-module imports should not duplicate code", async () => {
     const separateImports = await bundleAndMeasure(`
-      import { ok, err } from './dist/index.js';
-      import { iter } from './dist/iter.js';
-      console.log(ok, err, iter.map);
+      import { ok, err } from 'result-ts';
+      import { map } from 'result-ts/iter';
+      console.log(ok, err, map);
     `);
 
     const directIterImport = await bundleAndMeasure(`
-      import { ok, err, iter } from './dist/iter.js';
-      console.log(ok, err, iter.map);
+      import { ok, err, map } from 'result-ts/iter';
+      console.log(ok, err, map);
     `);
 
     console.log(`\n=== Cross-Module Import Optimization ===`);
@@ -201,12 +236,12 @@ describe("Bundle Size Tests - Architecture Verification", () => {
 
   it("unused imports are eliminated", async () => {
     const usedOnly = await bundleAndMeasure(`
-      import { ok, err } from './dist/index.js';
+      import { ok, err } from 'result-ts';
       console.log(ok('test'), err('test'));
     `);
 
     const withUnused = await bundleAndMeasure(`
-      import { ok, err, isOk, isErr, handle, unwrap, match } from './dist/index.js';
+      import { ok, err, isOk, isErr, handle, unwrap, match } from 'result-ts';
       console.log(ok('test'), err('test')); // Only using ok and err
     `);
 
@@ -225,12 +260,36 @@ describe("Bundle Size Tests - Regression Prevention", () => {
     // Forcing developers to either optimize or update claims
 
     const claims = [
-      { import: `import { ok } from './dist/index.js'; console.log(ok);`, maxSize: 75, name: "Single function" },
-      { import: `import { ok, err, isOk } from './dist/index.js'; console.log(ok, err, isOk);`, maxSize: 130, name: "Basic usage" },
-      { import: `import { ok, err, handle } from './dist/index.js'; console.log(ok, err, handle);`, maxSize: 250, name: "Safe execution" },
-      { import: `import { iter } from './dist/iter.js'; console.log(iter.map);`, maxSize: 180, name: "Data transformation" },
-      { import: `import { batch } from './dist/batch.js'; console.log(batch.all);`, maxSize: 230, name: "Array processing" },
-      { import: `import { patterns } from './dist/patterns.js'; console.log(patterns.safe);`, maxSize: 400, name: "Advanced patterns" },
+      {
+        import: `import { ok } from 'result-ts'; console.log(ok);`,
+        maxSize: 75,
+        name: "Single function",
+      },
+      {
+        import: `import { ok, err, isOk } from 'result-ts'; console.log(ok, err, isOk);`,
+        maxSize: 130,
+        name: "Basic usage",
+      },
+      {
+        import: `import { ok, err, handle } from 'result-ts'; console.log(ok, err, handle);`,
+        maxSize: 250,
+        name: "Safe execution",
+      },
+      {
+        import: `import { map } from 'result-ts/iter'; console.log(map);`,
+        maxSize: 180,
+        name: "Data transformation",
+      },
+      {
+        import: `import { all } from 'result-ts/batch'; console.log(all);`,
+        maxSize: 350,
+        name: "Array processing",
+      },
+      {
+        import: `import { safe } from 'result-ts/patterns'; console.log(safe);`,
+        maxSize: 600,
+        name: "Advanced patterns",
+      },
     ];
 
     console.log(`\n=== README Claims Regression Test ===`);

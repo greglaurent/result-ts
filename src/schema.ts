@@ -4,10 +4,10 @@
 import { z } from "zod";
 
 // Re-export all core essentials from core module
-export * from "./core";
+export * from "@/core";
 
 // Import types and constants for schema implementations
-import { OK, ERR, type Result } from "./types";
+import { OK, ERR, type Result } from "@/types";
 
 // Use shared constants from types.ts
 

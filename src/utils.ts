@@ -2,10 +2,10 @@
 // Provides debugging, side effects, and conversion utilities
 
 // Re-export all core essentials from core module
-export * from "./core";
+export * from "@/core";
 
 // Import types and constants for utils implementations
-import { OK, ERR, type Result } from "./types";
+import { OK, ERR, type Result } from "@/types";
 
 // =============================================================================
 // UTILITY FUNCTIONS (Individual Exports)
