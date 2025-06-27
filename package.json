@@ -33,6 +33,7 @@
     "clean": "rm -rf dist",
     "dev": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
     "docs": "pnpm build && typedoc",
+    "docs:ci": "pnpm build && typedoc --githubPages false",
     "docs:serve": "pnpm docs && npx http-server docs -p 8080",
     "docs:watch": "typedoc --watch",
     "docs:debug": "pnpm build && typedoc --logLevel Verbose",
