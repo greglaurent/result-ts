@@ -66,17 +66,16 @@
   // Files to include
   "include": [
     "src/**/*",
-    "src/**/*.json"
+    "src/**/*.json",
   ],
   // Files to exclude
   "exclude": [
     "node_modules",
     "dist",
     "build",
+    "tests/**/*",
     "**/*.test.ts",
-    "**/*.spec.ts",
-    "**/__tests__/**",
-    "**/__mocks__/**"
+    "**/*.spec.ts"
   ],
   // tsc-alias configuration
   "tsc-alias": {

@@ -38,7 +38,11 @@
     "docs:debug": "pnpm build && typedoc --logLevel Verbose",
     "lint": "echo \"Linting coming soon\" && exit 0",
     "prepublishOnly": "pnpm build",
-    "test": "echo \"Tests coming soon\" && exit 0",
+    "test": "vitest",
+    "test:bundle": "pnpm build && vitest run tests/bundle-size.test.ts",
+    "test:run": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -64,20 +68,30 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
-    "./core": {
-      "types": "./dist/core.d.ts",
-      "import": "./dist/core.js",
-      "require": "./dist/core.js"
+    "./iter": {
+      "types": "./dist/iter.d.ts",
+      "import": "./dist/iter.js",
+      "require": "./dist/iter.js"
     },
-    "./validation": {
-      "types": "./dist/validation.d.ts",
-      "import": "./dist/validation.js",
-      "require": "./dist/validation.js"
+    "./batch": {
+      "types": "./dist/batch.d.ts",
+      "import": "./dist/batch.js",
+      "require": "./dist/batch.js"
     },
-    "./base": {
-      "types": "./dist/base.d.ts",
-      "import": "./dist/base.js",
-      "require": "./dist/base.js"
+    "./utils": {
+      "types": "./dist/utils.d.ts",
+      "import": "./dist/utils.js",
+      "require": "./dist/utils.js"
+    },
+    "./patterns": {
+      "types": "./dist/patterns.d.ts",
+      "import": "./dist/patterns.js",
+      "require": "./dist/patterns.js"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js",
+      "require": "./dist/schema.js"
     }
   },
   "peerDependencies": {
@@ -89,10 +103,15 @@
     }
   },
   "devDependencies": {
+    "@vitest/ui": "^3.2.4",
     "concurrently": "^9.0.1",
+    "esbuild": "^0.25.5",
+    "perf_hooks": "^0.0.1",
     "tsc-alias": "^1.8.10",
     "typedoc": "^0.28.5",
     "typescript": "^5.8.3",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4",
     "zod": "^3.25.67"
   }
 }

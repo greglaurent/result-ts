@@ -1,0 +1,76 @@
+
+> result-ts@0.4.0-beta test:bundle /home/greg/Workspace/result-ts
+> pnpm build && vitest run tests/bundle-size.test.ts
+
+
+> result-ts@0.4.0-beta build /home/greg/Workspace/result-ts
+> pnpm clean && tsc && tsc-alias
+
+
+> result-ts@0.4.0-beta clean /home/greg/Workspace/result-ts
+> rm -rf dist
+
+
+ RUN  v3.2.4 /home/greg/Workspace/result-ts
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > core essentials (result-ts) with actual implementations
+Core essentials: 259 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > iter layer (core + iteration) should be reasonable
+Iter layer: 272 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > batch layer (core + batch) should be efficient
+Batch layer: 455 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > utils layer (core + utilities) should be small
+Utils layer: 285 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > patterns layer (core + advanced) should be controlled
+Patterns layer: 658 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > schema layer (core + validation) should exclude Zod
+Schema layer: 395 bytes (excluding Zod)
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > compare layer sizes - should show logical progression
+
+=== Layer Size Comparison (Post-Refactor) ===
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > compare layer sizes - should show logical progression
+Core    :  207 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > compare layer sizes - should show logical progression
+Utils   :  131 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > compare layer sizes - should show logical progression
+Iter    :  143 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > compare layer sizes - should show logical progression
+Patterns:  325 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > compare layer sizes - should show logical progression
+Batch   :  189 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > compare layer sizes - should show logical progression
+Schema  :  245 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > selective imports should tree-shake properly with new architecture
+Full core import: 783 bytes
+Partial core import: 107 bytes
+Single function import: 55 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > cross-layer imports should not duplicate core functions
+Core only: 207 bytes
+Core + iter separate: 261 bytes
+Iter directly: 261 bytes
+
+stdout | tests/bundle-size.test.ts > Bundle Size Tests - Refactored Architecture > types-only imports should have minimal impact
+Functions only: 89 bytes
+With unused imports: 89 bytes
+
+ ✓ tests/bundle-size.test.ts (10 tests) 76ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  20:32:56
+   Duration  416ms (transform 51ms, setup 0ms, collect 40ms, tests 76ms, environment 0ms, prepare 98ms)
+
