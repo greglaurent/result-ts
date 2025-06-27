@@ -3,7 +3,7 @@
 // All layer files re-export from this for consistency
 
 // Import types and constants from the shared foundation
-import { OK, ERR, type Result, type Ok, type Err } from "./types";
+import { OK, ERR, type Result, type Ok, type Err } from "@/types";
 
 // =============================================================================
 // CORE ESSENTIALS (Individual Exports)
@@ -172,7 +172,9 @@ export const handle = <T>(fn: () => T): Result<T, string> => {
  * @param fn - The async function to execute safely
  * @returns A Promise of Result with the function result or error message
  */
-export const handleAsync = async <T>(fn: () => Promise<T>): Promise<Result<T, string>> => {
+export const handleAsync = async <T>(
+  fn: () => Promise<T>,
+): Promise<Result<T, string>> => {
   try {
     const value = await fn();
     return { type: OK, value };
@@ -271,11 +273,11 @@ export const match = <T, U, V, E>(
 };
 
 // Re-export types for layer files that import from core
-export type { Result, Ok, Err } from "./types";
+export type { Result, Ok, Err } from "@/types";
 
 /**
  * This module defines the core essentials (11 functions) included in every layer.
- * 
+ *
  * Layer files re-export from this module plus their specific functions:
  * - index.ts → just core (this file)
  * - iter.ts → core + iteration functions
@@ -283,7 +285,7 @@ export type { Result, Ok, Err } from "./types";
  * - utils.ts → core + utility functions
  * - patterns.ts → core + advanced patterns
  * - schema.ts → core + validation functions
- * 
+ *
  * Benefits:
  * - Single source of truth for core functions
  * - Easy maintenance - update core in one place

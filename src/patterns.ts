@@ -2,10 +2,10 @@
 // Provides generator-based error handling and applicative patterns
 
 // Re-export all core essentials from core module
-export * from "./core";
+export * from "@/core";
 
 // Import types and constants for patterns implementations
-import { OK, ERR, type Result } from "./types";
+import { OK, ERR, type Result } from "@/types";
 
 // =============================================================================
 // ADVANCED PATTERNS (Individual Exports)

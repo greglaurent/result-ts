@@ -2,10 +2,10 @@
 // Provides array processing and bulk Result operations
 
 // Re-export all core essentials from core module
-export * from "./core";
+export * from "@/core";
 
 // Import types and constants for batch implementations
-import { OK, ERR, type Result } from "./types";
+import { OK, ERR, type Result } from "@/types";
 
 // =============================================================================
 // BATCH OPERATIONS (Individual Exports)
