@@ -5,7 +5,7 @@
 export * from "./core";
 
 // Import types and constants for batch implementations
-import { OK, ERR, type Result, type Ok, type Err } from "./types";
+import { OK, ERR, type Result } from "./types";
 
 // =============================================================================
 // BATCH OPERATIONS (Individual Exports)
@@ -389,11 +389,11 @@ export const first = <T, E>(results: Array<Result<T, E>>): Result<T, E[]> => {
 
 /**
  * This entry point includes core essentials + batch operations.
- * 
+ *
  * Use for: processing arrays of Results, bulk operations, statistics
- * 
+ *
  * Key functions: all(), partition(), analyze(), oks(), allAsync()
- * 
+ *
  * Other available layers:
  * - `result-ts` → core essentials only
  * - `result-ts/iter` → core + data transformation

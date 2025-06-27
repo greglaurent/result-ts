@@ -5,7 +5,7 @@
 export * from "./core";
 
 // Import types and constants for iteration implementations
-import { OK, ERR, type Result, type Ok, type Err } from "./types";
+import { OK, ERR, type Result } from "./types";
 
 // =============================================================================
 // ITERATION OPERATIONS (Individual Exports)
@@ -187,20 +187,20 @@ export const andThenAsync = async <T, U, E>(
 // Type-safe overloads for common cases
 export function pipe<T, U, E>(
   initialResult: Result<T, E>,
-  op1: (value: T) => Result<U, E>
+  op1: (value: T) => Result<U, E>,
 ): Result<U, E>;
 
 export function pipe<T, U, V, E>(
   initialResult: Result<T, E>,
   op1: (value: T) => Result<U, E>,
-  op2: (value: U) => Result<V, E>
+  op2: (value: U) => Result<V, E>,
 ): Result<V, E>;
 
 export function pipe<T, U, V, W, E>(
   initialResult: Result<T, E>,
   op1: (value: T) => Result<U, E>,
   op2: (value: U) => Result<V, E>,
-  op3: (value: V) => Result<W, E>
+  op3: (value: V) => Result<W, E>,
 ): Result<W, E>;
 
 export function pipe<T, U, V, W, X, E>(
@@ -208,7 +208,7 @@ export function pipe<T, U, V, W, X, E>(
   op1: (value: T) => Result<U, E>,
   op2: (value: U) => Result<V, E>,
   op3: (value: V) => Result<W, E>,
-  op4: (value: W) => Result<X, E>
+  op4: (value: W) => Result<X, E>,
 ): Result<X, E>;
 
 // Fallback for longer chains
@@ -228,11 +228,11 @@ export function pipe<T, E>(
 
 /**
  * This entry point includes core essentials + iteration operations.
- * 
+ *
  * Use for: data transformation, chaining, functional composition
- * 
+ *
  * Key functions: map(), pipe(), andThen(), mapAsync()
- * 
+ *
  * Other available layers:
  * - `result-ts` → core essentials only
  * - `result-ts/batch` → core + array processing
