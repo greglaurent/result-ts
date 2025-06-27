@@ -1,291 +1,236 @@
-# Result TS
+# result-ts
 
-> The **Performance-First** Result Library for TypeScript
+A TypeScript-first Result library with a focus on developer experience and with performance in mind.
 
 [![npm version](https://badge.fury.io/js/result-ts.svg)](https://www.npmjs.com/package/result-ts)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/result-ts)](https://bundlephobia.com/package/result-ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Why Result TS?** The only Result library built for **performance** without sacrificing **developer experience**.
+## What is result-ts?
 
-## ✨ Features
+result-ts is a library for handling operations that might fail, inspired by Rust's `Result<T, E>` type. It helps you write safer code by making error handling explicit and composable.
 
-- 🚀 **Performance-First** - Single-pass operations, zero-allocation loops, early-exit optimizations
-- 🎯 **Ergonomic Design** - User journey organization from beginner to advanced
-- 🔗 **Co-located Async** - `handle`/`handleAsync` right next to each other
-- 🌳 **Tree-Shakable** - Import only what you need (starts at **55 bytes**!)
-- 🧩 **Modular Architecture** - Organized namespaces: `iter`, `batch`, `patterns`, `utils`
-- ✅ **Optional Zod Integration** - Runtime validation when you need it
-- 🦀 **Rust-Inspired** - Familiar patterns, TypeScript-native implementation
-
-## 📦 Installation
+## Installation
 
 ```bash
-# Core library (no dependencies)
 npm install result-ts
+```
 
-# Optional: For validation features
+Optional peer dependency for validation features:
+
+```bash
 npm install zod
 ```
 
-## 🚀 Quick Start
+## Basic usage
 
 ```typescript
-import { ok, err, isOk, handle, iter, batch } from "result-ts";
+import { ok, err, isOk, isErr } from "result-ts";
 
-// Basic usage
-function divide(a: number, b: number): Result<number, string> {
-  return b === 0 ? err("Division by zero") : ok(a / b);
+// Creating Results
+const success = ok("Hello world");
+const failure = err("Something went wrong");
+
+// Type-safe checking
+if (isOk(success)) {
+  console.log(success.value); // TypeScript knows this is string
 }
 
-const result = divide(10, 2);
-if (isOk(result)) {
-  console.log(result.value); // 5 - TypeScript knows this is a number
+if (isErr(failure)) {
+  console.log(failure.error); // TypeScript knows this is string
 }
-
-// Safe function execution
-const jsonResult = handle(() => JSON.parse(data));
-const apiResult = await handleAsync(() =>
-  fetch("/api/users").then((r) => r.json()),
-);
-
-// High-performance chaining
-const transformed = iter.pipe(
-  getUserById(1),
-  (user) => getProfile(user.id),
-  (profile) => enhanceProfile(profile),
-);
-
-// Efficient batch operations
-const stats = batch.analyze(results); // Single-pass analysis
-console.log(`${stats.okCount}/${stats.total} succeeded`);
 ```
 
-## 🎯 Simple Design
-
-**Beginner (Day 1)** - Core essentials:
+## Safe function execution
 
 ```typescript
-import { ok, err, isOk, handle } from "result-ts";
-```
+import { handle, handleAsync } from "result-ts";
 
-**Intermediate** - Data transformations:
+// Sync functions
+const parseResult = handle(() => JSON.parse(jsonString));
 
-```typescript
-import { iter, batch } from "result-ts";
-iter.map(result, transform);
-batch.partition(results);
-```
-
-**Advanced** - Power features:
-
-```typescript
-import { advanced } from "result-ts";
-advanced.safe(function* () {
-  const user = yield getUser(id);
-  const profile = yield getProfile(user.id);
-  return { user, profile };
+// Async functions  
+const apiResult = await handleAsync(async () => {
+  const response = await fetch("/api/users");
+  return response.json();
 });
 ```
 
-## ⚡ Performance Advantages
+## Working with Results
 
-### Single-Pass Operations
-
-```typescript
-// ❌ Other libraries: Multiple iterations
-const successes = results.filter(isOk).map((r) => r.value); // 2 passes
-const errors = results.filter(isErr).map((r) => r.error); // 2 more passes
-const hasErrors = errors.length > 0; // Extra work
-
-// ✅ Result TS: Single pass
-const stats = batch.analyze(results); // 1 pass gets everything
-console.log(`Success rate: ${stats.okCount}/${stats.total}`);
-console.log(`Has errors: ${stats.hasErrors}`);
-```
-
-### Zero-Allocation Loops
+### Pattern matching
 
 ```typescript
-// ❌ Other libraries: Function allocations
-results.filter((r) => r.type === "Ok").map((r) => r.value); // Creates 2 functions
+import { match } from "result-ts";
 
-// ✅ Result TS: Manual loops, faster execution
-batch.oks(results); // Zero function allocation
-```
-
-### Early-Exit Optimizations
-
-```typescript
-// Find first success and first error with early exit
-const { firstOk, firstError } = batch.findFirst(results);
-```
-
-## 🏗️ API Overview
-
-### 📊 Bundle Size Comparison
-
-| Import Strategy                                            | Bundle Size   | Use Case            |
-| ---------------------------------------------------------- | ------------- | ------------------- |
-| `import { ok } from 'result-ts'`                           | **55 bytes**  | Single function     |
-| `import { ok, err, isOk } from 'result-ts'`                | **107 bytes** | Basic usage         |
-| `import { ok, err, handle } from 'result-ts'`              | **207 bytes** | Safe execution      |
-| `import { ok, err, handle, isOk, isErr } from 'result-ts'` | **259 bytes** | Core essentials     |
-| `import { map, pipe } from 'result-ts/iter'`               | **143 bytes** | Data transformation |
-| `import { all, partition } from 'result-ts/batch'`         | **189 bytes** | Array processing    |
-| `import { tap, inspect } from 'result-ts/utils'`           | **131 bytes** | Debugging helpers   |
-| `import { safe, zip } from 'result-ts/patterns'`           | **325 bytes** | Advanced patterns   |
-| `import { validate } from 'result-ts/schema'`              | **245 bytes** | Validation (+ Zod)  |
-
-### Layered Architecture Bundle Sizes
-
-| Layer        | Functions                   | Bundle Size   | Key Features               |
-| ------------ | --------------------------- | ------------- | -------------------------- |
-| **Core**     | Essential Result operations | **259 bytes** | ok, err, handle, match     |
-| **Iter**     | Core + data transformation  | **272 bytes** | map, pipe, andThen         |
-| **Utils**    | Core + debugging utilities  | **285 bytes** | inspect, tap, fromNullable |
-| **Schema**   | Core + validation with Zod  | **395 bytes** | validate, parseJson        |
-| **Batch**    | Core + array processing     | **455 bytes** | all, partition, analyze    |
-| **Patterns** | Core + advanced patterns    | **658 bytes** | safe, zip, apply           |
-
-> **Tree-Shaking Excellence:** Our distributed architecture achieves incredible bundle efficiency. Single function imports start at just **55 bytes**!
-
-### Core (Root Level)
-
-```typescript
-// Essential functions everyone needs
-ok, err, isOk, isErr, unwrap, unwrapOr;
-handle, handleAsync, handleWith, handleWithAsync;
-match;
-```
-
-### `iter` - Iteration Operations / Data Transformation
-
-```typescript
-// Transform Results through pipelines
-iter.map(result, fn);
-iter.mapAsync(promise, fn);
-iter.pipe(result, op1, op2, op3); // Performance-optimized chaining
-iter.andThen(result, fn);
-```
-
-### `batch` - Array Operations
-
-```typescript
-// High-performance batch operations
-batch.all(results); // Convert Result[] to Result<T[]>
-batch.analyze(results); // Single-pass statistics
-batch.findFirst(results); // Early-exit first success/error
-batch.partitionWith(results); // Enhanced partition with metadata
-```
-
-### `patterns` - Advanced Features
-
-```typescript
-// Specialized functionality
-patterns.safe(generator); // Rust-style ? operator with generators
-patterns.zip(resultA, resultB); // Combine two Results
-patterns.apply(fn, value); // Applicative pattern
-```
-
-### `utils` - Helpers
-
-```typescript
-// Development and conversion utilities
-utils.inspect(result, onOk, onErr); // Debug Results
-utils.fromNullable(value); // Convert nullable to Result
-utils.tap(result, fn); // Side effects on success
-```
-
-## 🔧 Validation (Optional)
-
-```bash
-npm install zod  # Required for validation features
-```
-
-```typescript
-import { validate, parseJson, resultSchema } from "result-ts/schema";
-
-// Core validation
-const userResult = validate(data, userSchema);
-const asyncResult = await validateAsync(data, userSchema);
-
-// Schema builders
-const userResultSchema = resultSchema(userSchema, z.string());
-
-// JSON parsing with validation
-const parsed = parseJson(jsonString, userSchema);
-```
-
-## 📚 Examples
-
-### Error Handling Patterns
-
-```typescript
-const processUser = (id: number) =>
-  iter.pipe(
-    getUserById(id),
-    (user) => validateUser(user),
-    (user) => enrichUserData(user),
-    (user) => saveUser(user),
-  );
-
-// Pattern matching
 const message = match(result, {
   Ok: (value) => `Success: ${value}`,
   Err: (error) => `Failed: ${error}`,
 });
 ```
 
-### Async Operations
+### Transforming values
 
 ```typescript
-// Handle async operations safely
-const apiResult = await handleAsync(async () => {
-  const response = await fetch("/api/data");
-  return response.json();
-});
+import { iter } from "result-ts";
 
-// Transform async Results
-const processed = await iter.mapAsync(
-  fetchUser(id),
-  async (user) => await enrichUser(user),
+// Transform success values
+const doubled = iter.map(result, x => x * 2);
+
+// Chain operations
+const processed = iter.pipe(
+  getUserById(1),
+  user => validateUser(user),
+  user => saveUser(user)
 );
 ```
 
-### Batch Processing
+### Working with arrays
 
 ```typescript
-const results = await Promise.all([fetchUser(1), fetchUser(2), fetchUser(3)]);
+import { batch } from "result-ts";
 
-// Get comprehensive stats in one pass
-const analysis = batch.analyze(results);
-console.log(`Loaded ${analysis.okCount} users, ${analysis.errorCount} failed`);
+const results = [ok(1), ok(2), err("failed"), ok(4)];
 
-// Extract successes efficiently
-const users = batch.oks(results);
-const errors = batch.errs(results);
+// Convert array of Results to Result of array
+const allOrNothing = batch.all(results);
+
+// Separate successes and errors
+const { oks, errors } = batch.partition(results);
+
+// Get statistics
+const stats = batch.analyze(results);
+console.log(`${stats.okCount}/${stats.total} succeeded`);
 ```
 
-## 📖 Documentation
+## Advanced patterns
 
-<!--
+### Generator-based error handling
 
-- [API Reference](https://your-username.github.io/result-ts/)
-- [Performance Guide](./docs/performance.md)
-- [Migration from other libraries](./docs/migration.md)
-- [Advanced Patterns](./docs/patterns.md)
+```typescript
+import { patterns } from "result-ts";
 
-## 🤝 Contributing
+// Rust-style ? operator using generators
+const userWithProfile = await patterns.safe(async function* () {
+  const user = yield getUser(id);          // Auto-unwraps or early returns
+  const profile = yield getProfile(user.id); // Only runs if user succeeded
+  return { user, profile };                 // Only runs if both succeed
+});
+```
 
-Contributions welcome! Please read our [Contributing Guide](./CONTRIBUTING.md).
--->
+### Validation with Zod
 
-## 📄 License
+```typescript
+import { validate, parseJson } from "result-ts/schema";
+import { z } from "zod";
 
-MIT © [Gregory Laurent](https://github.com/your-username)
+const UserSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
 
----
+// Validate data
+const userResult = validate(data, UserSchema);
 
-**Built for developers who want both performance and great DX** 🚀
+// Parse and validate JSON
+const parsed = parseJson(jsonString, UserSchema);
+```
+
+## API Reference
+
+### Core functions
+
+- **`ok(value)`** - Create a successful Result
+- **`err(error)`** - Create an error Result  
+- **`isOk(result)`** - Type guard for success
+- **`isErr(result)`** - Type guard for error
+- **`handle(fn)`** - Safely execute a function
+- **`handleAsync(fn)`** - Safely execute an async function
+- **`match(result, handlers)`** - Pattern match on Result
+- **`unwrap(result)`** - Extract value or throw
+- **`unwrapOr(result, defaultValue)`** - Extract value or return default
+
+### Namespaced modules
+
+#### `iter` - Data transformation
+
+- **`map(result, fn)`** - Transform success values
+- **`mapAsync(promise, fn)`** - Transform async Results
+- **`pipe(result, ...fns)`** - Chain operations
+- **`andThen(result, fn)`** - Flat map operation
+
+#### `batch` - Array operations
+
+- **`all(results)`** - Convert `Result[]` to `Result<T[]>`
+- **`partition(results)`** - Separate successes and errors
+- **`analyze(results)`** - Get statistics in single pass
+- **`oks(results)`** - Extract all success values
+- **`errs(results)`** - Extract all errors
+
+#### `patterns` - Advanced features
+
+- **`safe(generator)`** - Generator-based error handling
+- **`zip(resultA, resultB)`** - Combine two Results
+- **`apply(fn, ...results)`** - Applicative pattern
+
+#### `utils` - Helpers
+
+- **`inspect(result, onOk, onErr)`** - Debug Results
+- **`tap(result, fn)`** - Side effects on success  
+- **`fromNullable(value)`** - Convert nullable to Result
+
+#### `schema` - Validation (requires Zod)
+
+- **`validate(data, schema)`** - Validate with Zod schema
+- **`validateAsync(data, schema)`** - Async validation
+- **`parseJson(json, schema)`** - Parse and validate JSON
+
+## Tree-shaking and bundle size
+
+result-ts is built with tree-shaking in mind. You can import only what you need:
+
+```typescript
+// Minimal import - ~55 bytes
+import { ok } from "result-ts";
+
+// Core essentials - ~259 bytes  
+import { ok, err, isOk, handle } from "result-ts";
+
+// Modular imports
+import { iter } from "result-ts/iter";
+import { batch } from "result-ts/batch";
+import { validate } from "result-ts/schema";
+```
+
+result-ts is optimized for performance with:
+
+- **Single-pass operations** - `batch.analyze()` gets all stats in one iteration
+- **Zero-allocation loops** - Manual loops instead of function chains where it matters
+- **Early-exit optimizations** - Stop processing as soon as possible
+
+### Bundle size
+
+| Import                                          | Bundle Size | Use Case             |
+| ----------------------------------------------- | ----------- | -------------------- |
+| `import { ok } from "result-ts"`                | **55 bytes** | Single function      |
+| `import { ok, err, isOk } from "result-ts"`     | **107 bytes** | Basic usage          |
+| `import { ok, err, handle } from "result-ts"`   | **207 bytes** | Safe execution       |
+| `import { iter } from "result-ts/iter"`         | **143 bytes** | Data transformation  |
+| `import { batch } from "result-ts/batch"`       | **189 bytes** | Array processing     |
+| `import { patterns } from "result-ts/patterns"` | **325 bytes** | Advanced patterns    |
+| `import { validate } from "result-ts/schema"`   | **245 bytes** | Validation (+ Zod)   |
+
+The modular architecture means you only pay for what you use.
+
+## Why result-ts?
+
+- **Type-safe error handling** - Make errors explicit and handled
+- **Composable operations** - Chain and transform Results cleanly  
+- **Performance-focused** - Optimized for real-world usage
+- **Tree-shakable** - Only bundle what you use
+- **TypeScript-first** - Excellent IntelliSense and type inference
+- **Rust-inspired** - Familiar patterns for Rust developers
+
+## License
+
+MIT
