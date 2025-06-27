@@ -840,7 +840,7 @@ describe("Batch Module - Array Processing", () => {
     });
 
     it("should handle null/undefined edge cases gracefully", () => {
-      const mixedResults = [
+      const mixedResults: Array<Result<any, any>> = [
         ok(null),
         ok(undefined),
         ok(0),
