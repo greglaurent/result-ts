@@ -3,7 +3,7 @@
 // All layer files re-export from this for consistency
 
 // Import types and constants from the shared foundation
-import { OK, ERR, type Result, type Ok, type Err } from "@/types";
+import { OK, ERR, type Result, type Ok, type Err } from "./types";
 
 // =============================================================================
 // CORE ESSENTIALS (Individual Exports)
@@ -132,6 +132,7 @@ export const unwrapOr = <T, E>(result: Result<T, E>, defaultValue: T): T => {
 
 /**
  * Safely executes a function, catching any thrown errors and converting them to a Result.
+ * Preserves original thrown values in Error.cause when not already Error objects.
  *
  * @example
  * ```typescript
@@ -140,25 +141,37 @@ export const unwrapOr = <T, E>(result: Result<T, E>, defaultValue: T): T => {
  * // Returns: Ok(parsed object)
  *
  * const failed = handle(() => JSON.parse('invalid json'));
- * // Returns: Err("Unexpected token i in JSON at position 0")
+ * // Returns: Err(Error with message)
+ *
+ * const weirdError = handle(() => { throw 42; });
+ * // Returns: Err(Error with .cause = 42)
  * ```
  *
  * @param fn - The function to execute safely
- * @returns A Result with the function result or error message
+ * @returns A Result with the function result or Error object
  */
-export const handle = <T>(fn: () => T): Result<T, string> => {
+export const handle = <T>(fn: () => T): Result<T, Error> => {
   try {
     return { type: OK, value: fn() };
-  } catch (error) {
-    return {
-      type: ERR,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
+  } catch (thrown) {
+    if (thrown instanceof Error) {
+      return { type: ERR, error: thrown };
+    }
+
+    if (typeof thrown === "string") {
+      return { type: ERR, error: new Error(thrown) };
+    }
+
+    // For non-Error, non-string throws, wrap and preserve original
+    const error = new Error(`Caught non-Error value: ${String(thrown)}`);
+    (error as any).cause = thrown;
+    return { type: ERR, error };
   }
 };
 
 /**
  * Safely executes an async function, catching any thrown errors and converting them to a Result.
+ * Preserves original thrown values in Error.cause when not already Error objects.
  *
  * @example
  * ```typescript
@@ -166,23 +179,31 @@ export const handle = <T>(fn: () => T): Result<T, string> => {
  *   const response = await fetch('/api/users');
  *   return response.json();
  * });
- * // Returns: Ok(users) or Err("Network error")
+ * // Returns: Ok(users) or Err(Error object)
  * ```
  *
  * @param fn - The async function to execute safely
- * @returns A Promise of Result with the function result or error message
+ * @returns A Promise of Result with the function result or Error object
  */
 export const handleAsync = async <T>(
   fn: () => Promise<T>,
-): Promise<Result<T, string>> => {
+): Promise<Result<T, Error>> => {
   try {
     const value = await fn();
     return { type: OK, value };
-  } catch (error) {
-    return {
-      type: ERR,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
+  } catch (thrown) {
+    if (thrown instanceof Error) {
+      return { type: ERR, error: thrown };
+    }
+
+    if (typeof thrown === "string") {
+      return { type: ERR, error: new Error(thrown) };
+    }
+
+    // For non-Error, non-string throws, wrap and preserve original
+    const error = new Error(`Caught non-Error value: ${String(thrown)}`);
+    (error as any).cause = thrown;
+    return { type: ERR, error };
   }
 };
 
@@ -193,22 +214,33 @@ export const handleAsync = async <T>(
  * ```typescript
  * const result = handleWith(
  *   () => riskyOperation(),
- *   (error) => ({ code: 500, message: String(error) })
+ *   (error) => ({ code: 500, message: error.message })
  * );
  * // Returns: Ok(value) or Err with custom error object
  * ```
  *
  * @param fn - The function to execute safely
- * @param errorMapper - Function to transform caught errors
+ * @param errorMapper - Function to transform caught errors/Error objects
  * @returns A Result with the function result or mapped error
  */
 export const handleWith = <T, E>(
   fn: () => T,
-  errorMapper: (error: unknown) => E,
+  errorMapper: (error: Error) => E,
 ): Result<T, E> => {
   try {
     return { type: OK, value: fn() };
-  } catch (error) {
+  } catch (thrown) {
+    let error: Error;
+
+    if (thrown instanceof Error) {
+      error = thrown;
+    } else if (typeof thrown === "string") {
+      error = new Error(thrown);
+    } else {
+      error = new Error(`Caught non-Error value: ${String(thrown)}`);
+      (error as any).cause = thrown;
+    }
+
     return { type: ERR, error: errorMapper(error) };
   }
 };
@@ -225,17 +257,28 @@ export const handleWith = <T, E>(
  * ```
  *
  * @param fn - The async function to execute safely
- * @param errorMapper - Function to transform caught errors
+ * @param errorMapper - Function to transform caught errors/Error objects
  * @returns A Promise of Result with the function result or mapped error
  */
 export const handleWithAsync = async <T, E>(
   fn: () => Promise<T>,
-  errorMapper: (error: unknown) => E,
+  errorMapper: (error: Error) => E,
 ): Promise<Result<T, E>> => {
   try {
     const value = await fn();
     return { type: OK, value };
-  } catch (error) {
+  } catch (thrown) {
+    let error: Error;
+
+    if (thrown instanceof Error) {
+      error = thrown;
+    } else if (typeof thrown === "string") {
+      error = new Error(thrown);
+    } else {
+      error = new Error(`Caught non-Error value: ${String(thrown)}`);
+      (error as any).cause = thrown;
+    }
+
     return { type: ERR, error: errorMapper(error) };
   }
 };
@@ -247,7 +290,7 @@ export const handleWithAsync = async <T, E>(
  * ```typescript
  * const message = match(result, {
  *   Ok: (value) => `Success: ${value}`,
- *   Err: (error) => `Failed: ${error}`
+ *   Err: (error) => `Failed: ${error.message}`
  * });
  *
  * const processed = match(apiResult, {
@@ -273,7 +316,7 @@ export const match = <T, U, V, E>(
 };
 
 // Re-export types for layer files that import from core
-export type { Result, Ok, Err } from "@/types";
+export type { Result, Ok, Err } from "./types";
 
 /**
  * This module defines the core essentials (11 functions) included in every layer.
