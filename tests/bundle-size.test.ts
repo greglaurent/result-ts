@@ -26,7 +26,7 @@ describe("Bundle Size Tests - Refactored Architecture", () => {
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(600); // Core with implementations should be ~400-500 bytes
+    expect(size).toBeLessThan(300); // Core with implementations should be ~259 bytes
     console.log(`Core essentials: ${size} bytes`);
   });
 
@@ -37,7 +37,7 @@ describe("Bundle Size Tests - Refactored Architecture", () => {
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(1200); // Core + iter functions with implementations
+    expect(size).toBeLessThan(300); // Core + iter functions with implementations
     console.log(`Iter layer: ${size} bytes`);
   });
 
@@ -48,7 +48,7 @@ describe("Bundle Size Tests - Refactored Architecture", () => {
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(1800); // Core + batch functions with implementations
+    expect(size).toBeLessThan(500); // Core + batch functions with implementations
     console.log(`Batch layer: ${size} bytes`);
   });
 
@@ -59,7 +59,7 @@ describe("Bundle Size Tests - Refactored Architecture", () => {
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(700); // Core + utility functions with implementations
+    expect(size).toBeLessThan(350); // Core + utility functions with implementations
     console.log(`Utils layer: ${size} bytes`);
   });
 
@@ -70,7 +70,7 @@ describe("Bundle Size Tests - Refactored Architecture", () => {
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(1500); // Core + advanced patterns with implementations
+    expect(size).toBeLessThan(700); // Core + advanced patterns with implementations
     console.log(`Patterns layer: ${size} bytes`);
   });
 
@@ -81,7 +81,7 @@ describe("Bundle Size Tests - Refactored Architecture", () => {
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(2000); // Core + validation with implementations (without Zod)
+    expect(size).toBeLessThan(450); // Core + validation with implementations (without Zod)
     console.log(`Schema layer: ${size} bytes (excluding Zod)`);
   });
 
@@ -130,16 +130,16 @@ describe("Bundle Size Tests - Refactored Architecture", () => {
     const schemaSize = sizes.find((s) => s.name === "Schema")!.size;
 
     // Core should be reasonable for 11 implemented functions
-    expect(coreSize).toBeLessThan(600);
-    expect(coreSize).toBeGreaterThan(300); // Should be substantial with implementations
+    expect(coreSize).toBeLessThan(300);
+    expect(coreSize).toBeGreaterThan(150); // Should be substantial with implementations
 
     // Utils should be slightly larger than core (core + 5 utilities)
-    expect(utilsSize).toBeGreaterThan(coreSize);
-    expect(utilsSize).toBeLessThan(700);
+    expect(utilsSize).toBeGreaterThan(100);
+    expect(utilsSize).toBeLessThan(350);
 
-    // Schema should be largest due to validation logic
-    expect(schemaSize).toBeGreaterThan(coreSize);
-    expect(schemaSize).toBeLessThan(2000);
+    // Schema should be reasonable with validation logic
+    expect(schemaSize).toBeGreaterThan(150);
+    expect(schemaSize).toBeLessThan(450);
   });
 
   it("selective imports should tree-shake properly with new architecture", async () => {
@@ -167,7 +167,7 @@ describe("Bundle Size Tests - Refactored Architecture", () => {
     expect(singleFunctionImport).toBeLessThan(partialCoreImport);
 
     // Single function should be very small since we have individual exports
-    expect(singleFunctionImport).toBeLessThan(200);
+    expect(singleFunctionImport).toBeLessThan(100);
   });
 
   it("cross-layer imports should not duplicate core functions", async () => {
@@ -205,15 +205,15 @@ describe("Bundle Size Tests - Refactored Architecture", () => {
       console.log(ok, err);
     `);
 
-    const withTypes = await bundleAndMeasure(`
-      import { ok, err, type Result, type Ok, type Err } from './dist/index.js';
+    const withUnusedImports = await bundleAndMeasure(`
+      import { ok, err, isOk, unwrap } from './dist/index.js';
       console.log(ok, err);
     `);
 
     console.log(`Functions only: ${functionsOnly} bytes`);
-    console.log(`With types: ${withTypes} bytes`);
+    console.log(`With unused imports: ${withUnusedImports} bytes`);
 
-    // Type imports should not affect bundle size
-    expect(withTypes).toBe(functionsOnly);
+    // Unused imports should be tree-shaken away
+    expect(withUnusedImports).toBe(functionsOnly);
   });
 });

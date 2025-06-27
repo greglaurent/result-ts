@@ -14,8 +14,8 @@
 - 🚀 **Performance-First** - Single-pass operations, zero-allocation loops, early-exit optimizations
 - 🎯 **Ergonomic Design** - User journey organization from beginner to advanced
 - 🔗 **Co-located Async** - `handle`/`handleAsync` right next to each other
-- 🌳 **Tree-Shakable** - Import only what you need (starts at ~1KB)
-- 🧩 **Modular Architecture** - Organized namespaces: `iter`, `batch`, `advanced`, `utils`
+- 🌳 **Tree-Shakable** - Import only what you need (starts at **55 bytes**!)
+- 🧩 **Modular Architecture** - Organized namespaces: `iter`, `batch`, `patterns`, `utils`
 - ✅ **Optional Zod Integration** - Runtime validation when you need it
 - 🦀 **Rust-Inspired** - Familiar patterns, TypeScript-native implementation
 
@@ -108,13 +108,11 @@ console.log(`Has errors: ${stats.hasErrors}`);
 ### Zero-Allocation Loops
 
 ```typescript
-// Creates 2 functions
 // ❌ Other libraries: Function allocations
-results.filter((r) => r.type === "Ok").map((r) => r.value);
+results.filter((r) => r.type === "Ok").map((r) => r.value); // Creates 2 functions
 
-// Zero function allocation
 // ✅ Result TS: Manual loops, faster execution
-batch.oks(results);
+batch.oks(results); // Zero function allocation
 ```
 
 ### Early-Exit Optimizations
@@ -128,27 +126,30 @@ const { firstOk, firstError } = batch.findFirst(results);
 
 ### 📊 Bundle Size Comparison
 
-| Import Strategy                                     | Bundle Size     | Dependencies   |
-| --------------------------------------------------- | --------------- | -------------- |
-| `import { ok, err } from 'result-ts'`              | **127 bytes**   | None           |
-| `import { ok, err, handle } from 'result-ts'`      | **203 bytes**   | None           |
-| `import { ok, err, handle, isOk, isErr } from 'result-ts'` | **255 bytes** | None |
-| `import { map, pipe } from 'result-ts/iter'`       | **139 bytes**   | None           |
-| `import { all, partition } from 'result-ts/batch'` | **185 bytes**   | None           |
-| `import { tap, inspect } from 'result-ts/utils'`   | **127 bytes**   | None           |
-| `import { safe, zip } from 'result-ts/patterns'`   | **539 bytes**   | None           |
-| `import { validate } from 'result-ts/schema'`      | **217 bytes**   | Zod (optional) |
+| Import Strategy                                            | Bundle Size   | Use Case            |
+| ---------------------------------------------------------- | ------------- | ------------------- |
+| `import { ok } from 'result-ts'`                           | **55 bytes**  | Single function     |
+| `import { ok, err, isOk } from 'result-ts'`                | **107 bytes** | Basic usage         |
+| `import { ok, err, handle } from 'result-ts'`              | **207 bytes** | Safe execution      |
+| `import { ok, err, handle, isOk, isErr } from 'result-ts'` | **259 bytes** | Core essentials     |
+| `import { map, pipe } from 'result-ts/iter'`               | **143 bytes** | Data transformation |
+| `import { all, partition } from 'result-ts/batch'`         | **189 bytes** | Array processing    |
+| `import { tap, inspect } from 'result-ts/utils'`           | **131 bytes** | Debugging helpers   |
+| `import { safe, zip } from 'result-ts/patterns'`           | **325 bytes** | Advanced patterns   |
+| `import { validate } from 'result-ts/schema'`              | **245 bytes** | Validation (+ Zod)  |
 
 ### Layered Architecture Bundle Sizes
 
-| Layer           | Functions                           | Bundle Size     |
-| --------------- | ----------------------------------- | --------------- |
-| **Core**        | Essential Result operations         | **255 bytes**  |
-| **Iter**        | Core + data transformation          | **268 bytes**  |
-| **Utils**       | Core + debugging utilities          | **281 bytes**  |
-| **Schema**      | Core + validation with Zod          | **356 bytes**  |
-| **Batch**       | Core + array processing             | **451 bytes**  |
-| **Patterns**    | Core + advanced patterns            | **748 bytes**  |
+| Layer        | Functions                   | Bundle Size   | Key Features               |
+| ------------ | --------------------------- | ------------- | -------------------------- |
+| **Core**     | Essential Result operations | **259 bytes** | ok, err, handle, match     |
+| **Iter**     | Core + data transformation  | **272 bytes** | map, pipe, andThen         |
+| **Utils**    | Core + debugging utilities  | **285 bytes** | inspect, tap, fromNullable |
+| **Schema**   | Core + validation with Zod  | **395 bytes** | validate, parseJson        |
+| **Batch**    | Core + array processing     | **455 bytes** | all, partition, analyze    |
+| **Patterns** | Core + advanced patterns    | **658 bytes** | safe, zip, apply           |
+
+> **Tree-Shaking Excellence:** Our distributed architecture achieves incredible bundle efficiency. Single function imports start at just **55 bytes**!
 
 ### Core (Root Level)
 
@@ -179,13 +180,13 @@ batch.findFirst(results); // Early-exit first success/error
 batch.partitionWith(results); // Enhanced partition with metadata
 ```
 
-### `advanced` - Power Features
+### `patterns` - Advanced Features
 
 ```typescript
 // Specialized functionality
-advanced.safe(generator); // Rust-style ? operator with generators
-advanced.zip(resultA, resultB); // Combine two Results
-advanced.apply(fn, value); // Applicative pattern
+patterns.safe(generator); // Rust-style ? operator with generators
+patterns.zip(resultA, resultB); // Combine two Results
+patterns.apply(fn, value); // Applicative pattern
 ```
 
 ### `utils` - Helpers
@@ -204,17 +205,17 @@ npm install zod  # Required for validation features
 ```
 
 ```typescript
-import { validate, schemas, parse } from "result-ts/validation";
+import { validate, parseJson, resultSchema } from "result-ts/schema";
 
 // Core validation
 const userResult = validate(data, userSchema);
 const asyncResult = await validateAsync(data, userSchema);
 
 // Schema builders
-const userResultSchema = schemas.stringError(userSchema);
+const userResultSchema = resultSchema(userSchema, z.string());
 
 // JSON parsing with validation
-const parsed = parse.json(jsonString, userSchema);
+const parsed = parseJson(jsonString, userSchema);
 ```
 
 ## 📚 Examples
