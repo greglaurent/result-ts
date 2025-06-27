@@ -1,281 +1,299 @@
 import { bench, describe } from 'vitest';
-import { ok, err, isOk, isErr, handle, handleAsync, iter, batch } from '../src';
+import { ok, err, isOk, isErr } from '../src/core';
+import {
+  all,
+  oks,
+  errs,
+  partition,
+  partitionWith,
+  analyze,
+  findFirst,
+  reduce,
+  first
+} from '../src/batch';
+import type { Result } from '../src/types';
+
+const allErrorResults = Array(1000).fill(0).map(i => err(`Error ${i}`));
 
 // Test data generators
-const createResults = (size: number, errorRate = 0.3) =>
-  Array.from({ length: size }, (_, i) =>
-    Math.random() < errorRate ? err(`Error ${i}`) : ok(i)
-  );
-
-const createLargeResults = () => createResults(10000);
-const createMediumResults = () => createResults(1000);
-
-describe('Performance: Single-pass vs Multiple-pass Operations', () => {
-  const results = createLargeResults();
-
-  bench('✅ result-ts: batch.analyze (single-pass)', () => {
-    return batch.analyze(results);
-  });
-
-  bench('❌ naive: multiple separate passes', () => {
-    const okCount = results.filter(r => r.type === 'Ok').length;
-    const errorCount = results.filter(r => r.type === 'Err').length;
-    const hasErrors = errorCount > 0;
-    const total = results.length;
-    const successRate = okCount / total;
-    return { okCount, errorCount, hasErrors, total, successRate };
-  });
-
-  bench('✅ result-ts: batch.partition (single-pass)', () => {
-    return batch.partition(results);
-  });
-
-  bench('❌ naive: filter twice', () => {
-    const oks = results.filter(isOk).map(r => r.value);
-    const errs = results.filter(isErr).map(r => r.error);
-    return { oks, errs };
-  });
-});
-
-describe('Performance: Zero-allocation Loops', () => {
-  const results = createLargeResults();
-
-  bench('✅ result-ts: batch.oks (manual loop)', () => {
-    return batch.oks(results);
-  });
-
-  bench('❌ functional: filter + map (allocates functions)', () => {
-    return results.filter(r => r.type === 'Ok').map(r => r.value);
-  });
-
-  bench('✅ result-ts: batch.errs (manual loop)', () => {
-    return batch.errs(results);
-  });
-
-  bench('❌ functional: filter + map errors (allocates functions)', () => {
-    return results.filter(r => r.type === 'Err').map(r => r.error);
-  });
-
-  bench('✅ result-ts: batch.findFirst (early exit)', () => {
-    return batch.findFirst(results);
-  });
-
-  bench('❌ naive: find without early exit optimization', () => {
-    const firstOk = results.find(isOk);
-    const firstError = results.find(isErr);
-    return { firstOk, firstError };
-  });
-});
-
-describe('Performance: Error Handling Overhead', () => {
-  const validJson = '{"name": "John", "age": 30}';
-  const invalidJson = '{"name": "John", "age":}';
-
-  bench('✅ result-ts: handle with valid input', () => {
-    return handle(() => JSON.parse(validJson));
-  });
-
-  bench('⚡ raw: try-catch with valid input', () => {
-    try {
-      return { type: 'Ok', value: JSON.parse(validJson) };
-    } catch (error) {
-      return { type: 'Err', error };
+const createMixedResults = (size: number, errorRate = 0.3): Result<number, string>[] => {
+  const results: Result<number, string>[] = [];
+  for (let i = 0; i < size; i++) {
+    if (Math.random() < errorRate) {
+      results.push(err(`Error ${i}`));
+    } else {
+      results.push(ok(i));
     }
+  }
+  return results;
+};
+
+const createAllSuccessResults = (size: number): Result<number, string>[] => {
+  const results: Result<number, string>[] = [];
+  for (let i = 0; i < size; i++) {
+    results.push(ok(i));
+  }
+  return results;
+};
+
+const createEarlyFailureResults = (size: number): Result<number, string>[] => {
+  const results: Result<number, string>[] = [];
+  results.push(err('Early failure'));
+  for (let i = 1; i < size; i++) {
+    results.push(ok(i));
+  }
+  return results;
+};
+
+// Test datasets
+const smallResults = createMixedResults(100);
+const mediumResults = createMixedResults(1000);
+const largeResults = createMixedResults(10000);
+const allSuccessResults = createAllSuccessResults(1000);
+const earlyFailureResults = createEarlyFailureResults(1000);
+
+describe('Single-Pass vs Multiple-Pass Operations', () => {
+  bench('✅ batch.analyze() - single pass', () => {
+    analyze(largeResults);
   });
 
-  bench('✅ result-ts: handle with invalid input', () => {
-    return handle(() => JSON.parse(invalidJson));
-  });
-
-  bench('⚡ raw: try-catch with invalid input', () => {
-    try {
-      return { type: 'Ok', value: JSON.parse(invalidJson) };
-    } catch (error) {
-      return { type: 'Err', error };
-    }
-  });
-
-  bench('✅ result-ts: handle repeated operations', () => {
-    const results = [];
-    for (let i = 0; i < 100; i++) {
-      results.push(handle(() => JSON.parse(i % 2 === 0 ? validJson : invalidJson)));
-    }
-    return results;
-  });
-
-  bench('⚡ raw: try-catch repeated operations', () => {
-    const results = [];
-    for (let i = 0; i < 100; i++) {
-      try {
-        results.push({ type: 'Ok', value: JSON.parse(i % 2 === 0 ? validJson : invalidJson) });
-      } catch (error) {
-        results.push({ type: 'Err', error });
-      }
-    }
-    return results;
-  });
-});
-
-describe('Performance: Result Chaining Patterns', () => {
-  const add1 = (x: number) => ok(x + 1);
-  const multiply2 = (x: number) => ok(x * 2);
-  const subtract3 = (x: number) => ok(x - 3);
-  const maybeError = (x: number) => x > 50 ? err('too big') : ok(x);
-
-  bench('✅ result-ts: iter.pipe (optimized)', () => {
-    return iter.pipe(ok(10), add1, multiply2, subtract3, maybeError);
-  });
-
-  bench('❌ manual: verbose chaining', () => {
-    const step1 = add1(10);
-    if (step1.type === 'Err') return step1;
-
-    const step2 = multiply2(step1.value);
-    if (step2.type === 'Err') return step2;
-
-    const step3 = subtract3(step2.value);
-    if (step3.type === 'Err') return step3;
-
-    return maybeError(step3.value);
-  });
-
-  bench('🔄 functional: nested andThen calls', () => {
-    return iter.andThen(
-      iter.andThen(
-        iter.andThen(
-          iter.andThen(ok(10), add1),
-          multiply2
-        ),
-        subtract3
-      ),
-      maybeError
-    );
-  });
-});
-
-describe('Performance: Array Processing at Scale', () => {
-  const largeResults = createResults(50000);
-  const mediumResults = createMediumResults();
-
-  bench('✅ result-ts: batch.all on medium array', () => {
-    return batch.all(mediumResults);
-  });
-
-  bench('❌ manual: reduce for all pattern', () => {
-    return mediumResults.reduce((acc, result) => {
-      if (acc.type === 'Err') return acc;
-      if (result.type === 'Err') return result;
-      acc.value.push(result.value);
-      return acc;
-    }, ok([] as any[]));
-  });
-
-  bench('✅ result-ts: comprehensive analysis on large array', () => {
-    return batch.analyze(largeResults);
-  });
-
-  bench('❌ naive: separate analysis passes', () => {
+  bench('❌ naive multiple passes', () => {
     const total = largeResults.length;
     const okCount = largeResults.filter(isOk).length;
     const errorCount = largeResults.filter(isErr).length;
     const hasErrors = errorCount > 0;
     const isEmpty = total === 0;
-    const successRate = total > 0 ? okCount / total : 0;
+  });
+
+  bench('✅ batch.partition() - single pass', () => {
+    partition(largeResults);
+  });
+
+  bench('❌ naive filter twice', () => {
+    const oks = largeResults.filter(isOk).map(r => r.value);
+    const errors = largeResults.filter(isErr).map(r => r.error);
+  });
+
+  bench('✅ batch.partitionWith() - everything in one pass', () => {
+    partitionWith(largeResults);
+  });
+
+  bench('❌ functional equivalent to partitionWith', () => {
+    const okResults = largeResults.filter(isOk);
+    const errResults = largeResults.filter(isErr);
+    const oks = okResults.map(r => r.value);
+    const errors = errResults.map(r => r.error);
+    const okCount = oks.length;
+    const errorCount = errors.length;
+    const total = largeResults.length;
+  });
+
+  bench('❌ naive partition + length calculations', () => {
+    const okResults = largeResults.filter(isOk);
+    const errResults = largeResults.filter(isErr);
+    const oks = okResults.map(r => r.value);
+    const errors = errResults.map(r => r.error);
+    const okCount = oks.length;
+    const errorCount = errors.length;
+    const total = largeResults.length;
+  });
+});
+
+describe('Zero-Allocation Loops vs Functional Chains', () => {
+  bench('✅ batch.oks() - manual loop', () => {
+    oks(mediumResults);
+  });
+
+  bench('❌ filter + map chain', () => {
+    mediumResults.filter(isOk).map(r => r.value);
+  });
+
+  bench('✅ batch.errs() - manual loop', () => {
+    errs(mediumResults);
+  });
+
+  bench('❌ filter + map errors', () => {
+    mediumResults.filter(isErr).map(r => r.error);
+  });
+
+  bench('✅ both oks + errs together', () => {
+    oks(mediumResults);
+    errs(mediumResults);
+  });
+
+  bench('❌ functional style both', () => {
+    mediumResults.filter(isOk).map(r => r.value);
+    mediumResults.filter(isErr).map(r => r.error);
+  });
+});
+
+describe('Early-Exit Optimizations', () => {
+  bench('✅ batch.findFirst() - early exit', () => {
+    findFirst(largeResults);
+  });
+
+  bench('❌ naive separate finds', () => {
     const firstOk = largeResults.find(isOk);
     const firstError = largeResults.find(isErr);
-    return { total, okCount, errorCount, hasErrors, isEmpty, successRate, firstOk, firstError };
+    const okIndex = largeResults.findIndex(isOk);
+    const errorIndex = largeResults.findIndex(isErr);
+  });
+
+  bench('✅ batch.all() - early failure exit', () => {
+    all(earlyFailureResults);
+  });
+
+  bench('❌ naive early failure check', () => {
+    const values: number[] = [];
+    for (const result of earlyFailureResults) {
+      if (isErr(result)) {
+        break;
+      }
+      values.push(result.value);
+    }
   });
 });
 
-describe('Performance: Memory Allocation Patterns', () => {
-  const results = createMediumResults();
-
-  bench('✅ result-ts: memory-efficient extraction', () => {
-    // Single allocation for results array
-    const values = batch.oks(results);
-    const errors = batch.errs(results);
-    return { values, errors };
+describe('Array Conversion Performance', () => {
+  bench('✅ batch.all() - all success', () => {
+    all(allSuccessResults);
   });
 
-  bench('❌ functional: multiple allocations', () => {
-    // Multiple intermediate arrays created
-    const values = results
-      .filter(r => r.type === 'Ok')  // allocation 1
-      .map(r => r.value);            // allocation 2
-
-    const errors = results
-      .filter(r => r.type === 'Err') // allocation 3
-      .map(r => r.error);            // allocation 4
-
-    return { values, errors };
+  bench('❌ naive all success check', () => {
+    const values: number[] = [];
+    for (const result of allSuccessResults) {
+      if (isErr(result)) {
+        break;
+      }
+      values.push(result.value);
+    }
   });
 
-  bench('✅ result-ts: streaming analysis', () => {
-    // Processes results without intermediate storage
-    return batch.analyze(results);
+  bench('✅ batch.all() - mixed results', () => {
+    all(mediumResults);
   });
 
-  bench('❌ step-by-step: intermediate collections', () => {
-    const oks = results.filter(isOk);     // intermediate array 1
-    const errs = results.filter(isErr);   // intermediate array 2
-    const values = oks.map(r => r.value); // intermediate array 3
-    const errors = errs.map(r => r.error); // intermediate array 4
-
-    return {
-      total: results.length,
-      okCount: oks.length,
-      errorCount: errs.length,
-      hasErrors: errs.length > 0,
-      values,
-      errors
-    };
+  bench('❌ naive mixed results check', () => {
+    const values: number[] = [];
+    for (const result of mediumResults) {
+      if (isErr(result)) {
+        break;
+      }
+      values.push(result.value);
+    }
   });
 });
 
-describe('Performance: Async Operations', () => {
-  const mockAsyncSuccess = async () => "success";
-  const mockAsyncFailure = async () => { throw new Error("failure"); };
-  const mockAsyncMixed = async (shouldFail: boolean) => {
-    if (shouldFail) throw new Error("failure");
-    return "success";
-  };
-
-  bench('✅ result-ts: handleAsync with success', async () => {
-    const result = await handleAsync(mockAsyncSuccess);
-    return result;
+describe('Custom Processing Patterns', () => {
+  bench('✅ batch.reduce() - custom sum', () => {
+    reduce(
+      mediumResults,
+      {
+        onOk: (acc, value) => acc + value,
+        onErr: (acc) => acc
+      },
+      0
+    );
   });
 
-  bench('⚡ raw: try-catch async with success', async () => {
-    try {
-      const value = await mockAsyncSuccess();
-      return { type: 'Ok', value };
-    } catch (error) {
-      return { type: 'Err', error };
+  bench('❌ manual custom processing', () => {
+    let sum = 0;
+    for (let i = 0; i < mediumResults.length; i++) {
+      const result = mediumResults[i];
+      if (isOk(result)) {
+        sum += result.value;
+      }
     }
   });
 
-  bench('✅ result-ts: handleAsync with failure', async () => {
-    const result = await handleAsync(mockAsyncFailure);
-    return result;
+  bench('✅ batch.first() - find first success', () => {
+    first(allErrorResults);
   });
 
-  bench('⚡ raw: try-catch async with failure', async () => {
-    try {
-      const value = await mockAsyncFailure();
-      return { type: 'Ok', value };
-    } catch (error) {
-      return { type: 'Err', error };
+  bench('❌ naive first success or all errors', () => {
+    const firstOk = allErrorResults.find(isOk);
+    if (!firstOk) {
+      const allErrors = allErrorResults.filter(isErr).map(r => r.error);
     }
   });
+});
 
-  bench('✅ result-ts: mixed async operations', async () => {
-    const results = await Promise.all([
-      handleAsync(() => mockAsyncMixed(false)),
-      handleAsync(() => mockAsyncMixed(true)),
-      handleAsync(() => mockAsyncMixed(false)),
-      handleAsync(() => mockAsyncMixed(true)),
-    ]);
-    const analysis = batch.analyze(results);
-    return analysis;
+describe('Memory Allocation Comparison', () => {
+  bench('✅ batch.partitionWith() - single pass', () => {
+    partitionWith(largeResults);
+  });
+
+  bench('❌ equivalent functional approach', () => {
+    const okResults = largeResults.filter(isOk);
+    const errResults = largeResults.filter(isErr);
+    const oks = okResults.map(r => r.value);
+    const errors = errResults.map(r => r.error);
+    const okCount = oks.length;
+    const errorCount = errors.length;
+    const total = largeResults.length;
+  });
+
+  bench('✅ batch.analyze() - minimal allocation stats', () => {
+    analyze(largeResults);
+  });
+
+  bench('❌ functional chains - many allocations', () => {
+    const okResults = largeResults.filter(isOk);
+    const errResults = largeResults.filter(isErr);
+    const okCount = okResults.length;
+    const errorCount = errResults.length;
+    const total = largeResults.length;
+    const hasErrors = errorCount > 0;
+    const isEmpty = total === 0;
+  });
+});
+
+describe('Scaling Performance', () => {
+  bench('batch.analyze - 100 items', () => {
+    analyze(smallResults);
+  });
+
+  bench('batch.analyze - 1,000 items', () => {
+    analyze(mediumResults);
+  });
+
+  bench('batch.analyze - 10,000 items', () => {
+    analyze(largeResults);
+  });
+
+  bench('batch.partition - 100 items', () => {
+    partition(smallResults);
+  });
+
+  bench('batch.partition - 1,000 items', () => {
+    partition(mediumResults);
+  });
+
+  bench('batch.partition - 10,000 items', () => {
+    partition(largeResults);
+  });
+
+  bench('batch.oks - 100 items', () => {
+    oks(smallResults);
+  });
+
+  bench('batch.oks - 1,000 items', () => {
+    oks(mediumResults);
+  });
+
+  bench('batch.oks - 10,000 items', () => {
+    oks(largeResults);
+  });
+
+  bench('batch.partitionWith - 100 items', () => {
+    partitionWith(smallResults);
+  });
+
+  bench('batch.partitionWith - 1,000 items', () => {
+    partitionWith(mediumResults);
+  });
+
+  bench('batch.partitionWith - 10,000 items', () => {
+    partitionWith(largeResults);
   });
 });
