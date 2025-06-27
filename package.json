@@ -37,7 +37,7 @@
     "dev": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
     "lint": "echo \"Linting coming soon\" && exit 0",
     "prepublishOnly": "pnpm build",
-    "test": "vitest",
+    "test": "vitest --config vitest.config.ts",
     "test:bundle": "pnpm build && vitest run tests/bundle-size.test.ts",
     "test:run": "vitest run",
     "test:watch": "vitest --watch",

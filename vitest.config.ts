@@ -13,12 +13,6 @@ export default defineConfig({
       outputFile: "benchmark-results.json",
     },
   },
-  resolve: {
-    alias: {
-      "@": "./src",
-      "~": "./src",
-    },
-  },
   define: {
     global: "globalThis",
   },
