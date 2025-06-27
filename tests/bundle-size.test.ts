@@ -18,202 +18,226 @@ const bundleAndMeasure = async (importCode: string): Promise<number> => {
   return result.outputFiles[0].contents.length;
 };
 
-describe("Bundle Size Tests - Refactored Architecture", () => {
-  it("core essentials (result-ts) with actual implementations", async () => {
+describe("Bundle Size Tests - README Claims Verification", () => {
+  it("single function import - should match README claim (~55 bytes)", async () => {
     const importCode = `
-      import { ok, err, isOk, isErr, handle } from './dist/index.js';
-      console.log(ok('test'), err('test'), isOk, isErr, handle);
+      import { ok } from './dist/index.js';
+      console.log(ok('test'));
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(300); // Core with implementations should be ~259 bytes
-    console.log(`Core essentials: ${size} bytes`);
+    expect(size).toBeLessThan(100); // 55 bytes target + reasonable buffer
+    console.log(`✅ Single function (ok): ${size} bytes (target: ~55 bytes)`);
   });
 
-  it("iter layer (core + iteration) should be reasonable", async () => {
+  it("basic usage - should match README claim (~107 bytes)", async () => {
     const importCode = `
-      import { ok, err, map, pipe, andThen } from './dist/iter.js';
-      console.log(ok, err, map, pipe, andThen);
+      import { ok, err, isOk } from './dist/index.js';
+      console.log(ok('test'), err('test'), isOk);
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(300); // Core + iter functions with implementations
-    console.log(`Iter layer: ${size} bytes`);
+    expect(size).toBeLessThan(150); // 107 bytes target + buffer
+    console.log(`✅ Basic usage: ${size} bytes (target: ~107 bytes)`);
   });
 
-  it("batch layer (core + batch) should be efficient", async () => {
+  it("safe execution - should match README claim (~207 bytes)", async () => {
     const importCode = `
-      import { ok, err, all, partition, analyze } from './dist/batch.js';
-      console.log(ok, err, all, partition, analyze);
+      import { ok, err, handle } from './dist/index.js';
+      console.log(ok, err, handle);
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(500); // Core + batch functions with implementations
-    console.log(`Batch layer: ${size} bytes`);
+    expect(size).toBeLessThan(250); // 207 bytes target + buffer
+    console.log(`✅ Safe execution: ${size} bytes (target: ~207 bytes)`);
   });
 
-  it("utils layer (core + utilities) should be small", async () => {
+  it("iter module - should match README claim (~143 bytes)", async () => {
     const importCode = `
-      import { ok, err, inspect, tap, fromNullable } from './dist/utils.js';
-      console.log(ok, err, inspect, tap, fromNullable);
+      import { iter } from './dist/iter.js';
+      console.log(iter.map, iter.pipe);
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(350); // Core + utility functions with implementations
-    console.log(`Utils layer: ${size} bytes`);
+    expect(size).toBeLessThan(200); // 143 bytes target + buffer
+    console.log(`✅ Iter module: ${size} bytes (target: ~143 bytes)`);
   });
 
-  it("patterns layer (core + advanced) should be controlled", async () => {
+  it("batch module - should match README claim (~189 bytes)", async () => {
     const importCode = `
-      import { ok, err, safe, zip, apply } from './dist/patterns.js';
-      console.log(ok, err, safe, zip, apply);
+      import { batch } from './dist/batch.js';
+      console.log(batch.all, batch.analyze);
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(700); // Core + advanced patterns with implementations
-    console.log(`Patterns layer: ${size} bytes`);
+    expect(size).toBeLessThan(250); // 189 bytes target + buffer
+    console.log(`✅ Batch module: ${size} bytes (target: ~189 bytes)`);
   });
 
-  it("schema layer (core + validation) should exclude Zod", async () => {
+  it("patterns module - should match README claim (~325 bytes)", async () => {
     const importCode = `
-      import { ok, err, validate, parseJson } from './dist/schema.js';
-      console.log(ok, err, validate, parseJson);
+      import { patterns } from './dist/patterns.js';
+      console.log(patterns.safe, patterns.zip);
     `;
 
     const size = await bundleAndMeasure(importCode);
-    expect(size).toBeLessThan(450); // Core + validation with implementations (without Zod)
-    console.log(`Schema layer: ${size} bytes (excluding Zod)`);
+    expect(size).toBeLessThan(400); // 325 bytes target + buffer
+    console.log(`✅ Patterns module: ${size} bytes (target: ~325 bytes)`);
   });
 
-  it("compare layer sizes - should show logical progression", async () => {
-    const layers = [
-      {
-        name: "Core",
-        import: `import { ok, err, handle } from './dist/index.js'; console.log(ok, err, handle);`,
-      },
-      {
-        name: "Utils",
-        import: `import { ok, err, tap } from './dist/utils.js'; console.log(ok, err, tap);`,
-      },
-      {
-        name: "Iter",
-        import: `import { ok, err, map } from './dist/iter.js'; console.log(ok, err, map);`,
-      },
-      {
-        name: "Patterns",
-        import: `import { ok, err, safe } from './dist/patterns.js'; console.log(ok, err, safe);`,
-      },
-      {
-        name: "Batch",
-        import: `import { ok, err, all } from './dist/batch.js'; console.log(ok, err, all);`,
-      },
-      {
-        name: "Schema",
-        import: `import { ok, err, validate } from './dist/schema.js'; console.log(ok, err, validate);`,
-      },
+  it("schema module - should match README claim (~245 bytes excluding Zod)", async () => {
+    const importCode = `
+      import { validate } from './dist/schema.js';
+      console.log(validate);
+    `;
+
+    const size = await bundleAndMeasure(importCode);
+    expect(size).toBeLessThan(300); // 245 bytes target + buffer
+    console.log(`✅ Schema module: ${size} bytes (target: ~245 bytes, excluding Zod)`);
+  });
+});
+
+describe("Bundle Size Tests - Architecture Verification", () => {
+  it("core essentials with full feature set", async () => {
+    const importCode = `
+      import { ok, err, isOk, isErr, handle, unwrap, unwrapOr, match } from './dist/index.js';
+      console.log(ok, err, isOk, isErr, handle, unwrap, unwrapOr, match);
+    `;
+
+    const size = await bundleAndMeasure(importCode);
+    expect(size).toBeLessThan(350);
+    console.log(`Core essentials (full): ${size} bytes`);
+  });
+
+  it("modular imports should be efficient", async () => {
+    const sizes: Array<{ name: string; size: number; target: number }> = [];
+
+    const modules = [
+      { name: "Single ok", import: `import { ok } from './dist/index.js'; console.log(ok);`, target: 55 },
+      { name: "Basic usage", import: `import { ok, err, isOk } from './dist/index.js'; console.log(ok, err, isOk);`, target: 107 },
+      { name: "Safe execution", import: `import { ok, err, handle } from './dist/index.js'; console.log(ok, err, handle);`, target: 207 },
+      { name: "Data transform", import: `import { iter } from './dist/iter.js'; console.log(iter.map);`, target: 143 },
+      { name: "Array processing", import: `import { batch } from './dist/batch.js'; console.log(batch.all);`, target: 189 },
+      { name: "Advanced patterns", import: `import { patterns } from './dist/patterns.js'; console.log(patterns.safe);`, target: 325 },
+      { name: "Validation", import: `import { validate } from './dist/schema.js'; console.log(validate);`, target: 245 },
     ];
 
-    console.log("\n=== Layer Size Comparison (Post-Refactor) ===");
-    const sizes: { name: string; size: number }[] = [];
+    console.log("\n=== README Bundle Size Claims Verification ===");
+    console.log("Name".padEnd(20) + "Actual".padEnd(10) + "Target".padEnd(10) + "Status");
+    console.log("-".repeat(50));
 
-    for (const layer of layers) {
-      const size = await bundleAndMeasure(layer.import);
-      sizes.push({ name: layer.name, size });
+    for (const module of modules) {
+      const size = await bundleAndMeasure(module.import);
+      sizes.push({ name: module.name, size, target: module.target });
+
+      const status = size <= module.target * 1.5 ? "✅ PASS" : "❌ FAIL"; // 50% tolerance
       console.log(
-        `${layer.name.padEnd(8)}: ${size.toString().padStart(4)} bytes`,
+        `${module.name.padEnd(20)}${size.toString().padEnd(10)}${module.target.toString().padEnd(10)}${status}`
       );
     }
 
-    // Validate that sizes are reasonable
-    const coreSize = sizes.find((s) => s.name === "Core")!.size;
-    const utilsSize = sizes.find((s) => s.name === "Utils")!.size;
-    const schemaSize = sizes.find((s) => s.name === "Schema")!.size;
+    // Verify progressive size increases make sense
+    const singleOk = sizes.find(s => s.name === "Single ok")!.size;
+    const basicUsage = sizes.find(s => s.name === "Basic usage")!.size;
+    const safeExecution = sizes.find(s => s.name === "Safe execution")!.size;
 
-    // Core should be reasonable for 11 implemented functions
-    expect(coreSize).toBeLessThan(300);
-    expect(coreSize).toBeGreaterThan(150); // Should be substantial with implementations
-
-    // Utils should be slightly larger than core (core + 5 utilities)
-    expect(utilsSize).toBeGreaterThan(100);
-    expect(utilsSize).toBeLessThan(350);
-
-    // Schema should be reasonable with validation logic
-    expect(schemaSize).toBeGreaterThan(150);
-    expect(schemaSize).toBeLessThan(450);
+    expect(basicUsage).toBeGreaterThan(singleOk);
+    expect(safeExecution).toBeGreaterThan(basicUsage);
   });
 
-  it("selective imports should tree-shake properly with new architecture", async () => {
-    const fullCoreImport = await bundleAndMeasure(`
+  it("tree-shaking effectiveness", async () => {
+    const fullImport = await bundleAndMeasure(`
       import { ok, err, isOk, isErr, unwrap, unwrapOr, handle, handleAsync, handleWith, handleWithAsync, match } from './dist/index.js';
       console.log(ok, err, isOk, isErr, unwrap, unwrapOr, handle, handleAsync, handleWith, handleWithAsync, match);
     `);
 
-    const partialCoreImport = await bundleAndMeasure(`
+    const partialImport = await bundleAndMeasure(`
       import { ok, err, isOk } from './dist/index.js';
       console.log(ok, err, isOk);
     `);
 
-    const singleFunctionImport = await bundleAndMeasure(`
+    const singleImport = await bundleAndMeasure(`
       import { ok } from './dist/index.js';
       console.log(ok);
     `);
 
-    console.log(`Full core import: ${fullCoreImport} bytes`);
-    console.log(`Partial core import: ${partialCoreImport} bytes`);
-    console.log(`Single function import: ${singleFunctionImport} bytes`);
+    console.log(`\n=== Tree-Shaking Effectiveness ===`);
+    console.log(`Full import:    ${fullImport} bytes`);
+    console.log(`Partial import: ${partialImport} bytes`);
+    console.log(`Single import:  ${singleImport} bytes`);
 
-    // Tree-shaking should work well with individual implementations
-    expect(partialCoreImport).toBeLessThan(fullCoreImport);
-    expect(singleFunctionImport).toBeLessThan(partialCoreImport);
+    // Tree-shaking should work progressively
+    expect(partialImport).toBeLessThan(fullImport);
+    expect(singleImport).toBeLessThan(partialImport);
 
-    // Single function should be very small since we have individual exports
-    expect(singleFunctionImport).toBeLessThan(100);
+    // Calculate efficiency
+    const efficiency = ((fullImport - singleImport) / fullImport * 100).toFixed(1);
+    console.log(`Tree-shaking efficiency: ${efficiency}% size reduction`);
+    expect(Number(efficiency)).toBeGreaterThan(50); // Should remove at least 50% when going from full to single
   });
 
-  it("cross-layer imports should not duplicate core functions", async () => {
-    const coreOnly = await bundleAndMeasure(`
-      import { ok, err, handle } from './dist/index.js';
-      console.log(ok, err, handle);
-    `);
-
-    const iterWithCore = await bundleAndMeasure(`
-      import { ok, err, handle } from './dist/index.js';
-      import { map } from './dist/iter.js';
-      console.log(ok, err, handle, map);
-    `);
-
-    const iterDirectly = await bundleAndMeasure(`
-      import { ok, err, handle, map } from './dist/iter.js';
-      console.log(ok, err, handle, map);
-    `);
-
-    console.log(`Core only: ${coreOnly} bytes`);
-    console.log(`Core + iter separate: ${iterWithCore} bytes`);
-    console.log(`Iter directly: ${iterDirectly} bytes`);
-
-    // Direct import from iter should be more efficient than mixing
-    expect(iterDirectly).toBeLessThanOrEqual(iterWithCore);
-
-    // The difference should be minimal due to shared implementations
-    const difference = Math.abs(iterDirectly - iterWithCore);
-    expect(difference).toBeLessThan(100); // Should be very close
-  });
-
-  it("types-only imports should have minimal impact", async () => {
-    const functionsOnly = await bundleAndMeasure(`
+  it("cross-module imports should not duplicate code", async () => {
+    const separateImports = await bundleAndMeasure(`
       import { ok, err } from './dist/index.js';
-      console.log(ok, err);
+      import { iter } from './dist/iter.js';
+      console.log(ok, err, iter.map);
     `);
 
-    const withUnusedImports = await bundleAndMeasure(`
-      import { ok, err, isOk, unwrap } from './dist/index.js';
-      console.log(ok, err);
+    const directIterImport = await bundleAndMeasure(`
+      import { ok, err, iter } from './dist/iter.js';
+      console.log(ok, err, iter.map);
     `);
 
-    console.log(`Functions only: ${functionsOnly} bytes`);
-    console.log(`With unused imports: ${withUnusedImports} bytes`);
+    console.log(`\n=== Cross-Module Import Optimization ===`);
+    console.log(`Separate imports: ${separateImports} bytes`);
+    console.log(`Direct iter import: ${directIterImport} bytes`);
 
-    // Unused imports should be tree-shaken away
-    expect(withUnusedImports).toBe(functionsOnly);
+    // Direct import should be same or better (no code duplication)
+    expect(directIterImport).toBeLessThanOrEqual(separateImports);
+
+    const difference = Math.abs(separateImports - directIterImport);
+    expect(difference).toBeLessThan(50); // Should be very close, minimal duplication
+  });
+
+  it("unused imports are eliminated", async () => {
+    const usedOnly = await bundleAndMeasure(`
+      import { ok, err } from './dist/index.js';
+      console.log(ok('test'), err('test'));
+    `);
+
+    const withUnused = await bundleAndMeasure(`
+      import { ok, err, isOk, isErr, handle, unwrap, match } from './dist/index.js';
+      console.log(ok('test'), err('test')); // Only using ok and err
+    `);
+
+    console.log(`\n=== Unused Import Elimination ===`);
+    console.log(`Used only: ${usedOnly} bytes`);
+    console.log(`With unused: ${withUnused} bytes`);
+
+    // Should eliminate unused imports completely
+    expect(withUnused).toBe(usedOnly);
+  });
+});
+
+describe("Bundle Size Tests - Regression Prevention", () => {
+  it("README claims should remain accurate", async () => {
+    // This test will fail if bundle sizes exceed README claims by too much
+    // Forcing developers to either optimize or update claims
+
+    const claims = [
+      { import: `import { ok } from './dist/index.js'; console.log(ok);`, maxSize: 75, name: "Single function" },
+      { import: `import { ok, err, isOk } from './dist/index.js'; console.log(ok, err, isOk);`, maxSize: 130, name: "Basic usage" },
+      { import: `import { ok, err, handle } from './dist/index.js'; console.log(ok, err, handle);`, maxSize: 250, name: "Safe execution" },
+      { import: `import { iter } from './dist/iter.js'; console.log(iter.map);`, maxSize: 180, name: "Data transformation" },
+      { import: `import { batch } from './dist/batch.js'; console.log(batch.all);`, maxSize: 230, name: "Array processing" },
+      { import: `import { patterns } from './dist/patterns.js'; console.log(patterns.safe);`, maxSize: 400, name: "Advanced patterns" },
+    ];
+
+    console.log(`\n=== README Claims Regression Test ===`);
+    for (const claim of claims) {
+      const size = await bundleAndMeasure(claim.import);
+      console.log(`${claim.name}: ${size} bytes (max: ${claim.maxSize})`);
+      expect(size).toBeLessThan(claim.maxSize);
+    }
   });
 });
