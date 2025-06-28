@@ -79,28 +79,20 @@ export const resultErr = <E>(error: E): Result<never, E> => ({
  * @param initial - The initial Result to start the chain
  * @returns A chainable interface for Result operations
  */
-export const chain = <T, E>(initial: Result<T, E>) => ({
-  /**
-   * Chains another Result-returning operation, short-circuiting on errors.
-   *
-   * @param fn - Function that takes the success value and returns a new Result
-   * @returns A new chain with the transformed value type
-   */
-  then: <U>(fn: (value: T) => Result<U, E>) => {
-    if (initial.type === OK) {
-      return chain(fn(initial.value));
-    } else {
-      return chain(initial as Result<U, E>);
+export const chain = <T, E>(initial: Result<T, E>): Chain<T, E> => ({
+  then: <U>(fn: (value: T) => Result<U, E>): Chain<U, E> => {
+    if (initial.type === ERR) {
+      return chain({ type: ERR, error: initial.error });
     }
+    return chain(fn(initial.value));
   },
-
-  /**
-   * Executes the chain and returns the final Result.
-   *
-   * @returns The final Result of the chain
-   */
-  run: () => initial,
+  run: (): Result<T, E> => initial,
 });
+
+interface Chain<T, E> {
+  then<U>(fn: (value: T) => Result<U, E>): Chain<U, E>;
+  run(): Result<T, E>;
+}
 
 // =============================================================================
 // ADVANCED PATTERNS (Individual Exports)
@@ -125,16 +117,16 @@ export const chain = <T, E>(initial: Result<T, E>) => ({
  * @returns Result containing either the final value or the first error
  */
 export const safe = <T, E>(
-  generator: () => Generator<Result<unknown, E>, T, unknown>,
+  generator: () => Generator<Result<any, E>, T, any>,
 ): Result<T, E> => {
   const gen = generator();
   try {
     let current = gen.next();
     while (!current.done) {
-      const result = current.value as Result<unknown, E>;
+      const result = current.value as Result<any, E>;
       if (result.type === ERR) {
         try {
-          gen.return(undefined as T);
+          gen.return(undefined as any);
         } catch {
           // Just ignore cleanup errors
         }
@@ -145,7 +137,7 @@ export const safe = <T, E>(
     return { type: OK, value: current.value };
   } catch (error) {
     try {
-      gen.return(undefined as T);
+      gen.return(undefined as any);
     } catch {
       // intentionally ignore errors
     }
@@ -169,16 +161,16 @@ export const safe = <T, E>(
  * @returns Promise of Result containing final value or first error
  */
 export const safeAsync = async <T, E>(
-  generator: () => AsyncGenerator<Result<unknown, E>, T, unknown>,
+  generator: () => AsyncGenerator<Result<any, E>, T, any>,
 ): Promise<Result<T, E>> => {
   const gen = generator();
   try {
     let current = await gen.next();
     while (!current.done) {
-      const result = current.value as Result<unknown, E>;
+      const result = current.value as Result<any, E>;
       if (result.type === ERR) {
         try {
-          await gen.return(undefined as T);
+          await gen.return(undefined as any);
         } catch {
           // Just ignore cleanup errors
         }
@@ -189,7 +181,7 @@ export const safeAsync = async <T, E>(
     return { type: OK, value: current.value };
   } catch (error) {
     try {
-      await gen.return(undefined as T);
+      await gen.return(undefined as any);
     } catch {
       // Just ignore cleanup errors
     }
@@ -283,16 +275,14 @@ export const apply = <T, U, E>(
   resultFn: Result<(value: T) => U, E>,
   resultValue: Result<T, E>,
 ): Result<U, E> => {
-  if (resultFn.type === OK && resultValue.type === OK) {
-    return { type: OK, value: resultFn.value(resultValue.value) };
-  }
-
   if (resultFn.type === ERR) {
     return { type: ERR, error: resultFn.error };
   }
-
-  // resultValue must be ERR due to discriminated union
-  return resultValue as never;
+  if (resultValue.type === ERR) {
+    return { type: ERR, error: resultValue.error };
+  }
+  // Both are OK
+  return { type: OK, value: resultFn.value(resultValue.value) };
 };
 
 /**
