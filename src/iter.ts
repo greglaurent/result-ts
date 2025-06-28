@@ -18,16 +18,19 @@ import { OK, ERR, type Result } from "@/types";
  * ```typescript
  * const result = ok(5);
  * const doubled = map(result, x => x * 2);
- * // Returns: Ok(10)
+ * // Returns: Result<number, never> → Ok(10)
  *
  * const error = err("failed");
  * const mapped = map(error, x => x * 2);
- * // Returns: Err("failed") - unchanged
+ * // Returns: Result<never, string> → Err("failed") - unchanged
  * ```
  *
  * @param result - The Result to transform
  * @param mapper - Function to transform the success value
  * @returns A new Result with the transformed value or original error
+ * @see {@link mapAsync} for async transformations
+ * @see {@link mapErr} for error transformations
+ * @see {@link andThen} for chaining operations that return Results
  */
 export const map = <T, U, E>(
   result: Result<T, E>,
@@ -48,11 +51,14 @@ export const map = <T, U, E>(
  *   const profile = await fetchProfile(user.id);
  *   return { ...user, profile };
  * });
+ * // Returns: Promise<Result<EnhancedUser, Error>>
  * ```
  *
  * @param promise - Promise of Result to transform
  * @param mapper - Async function to transform the success value
  * @returns Promise of Result with transformed value or original error
+ * @see {@link map} for sync transformations
+ * @see {@link andThenAsync} for async chaining
  */
 export const mapAsync = async <T, U, E>(
   promise: Promise<Result<T, E>>,
@@ -72,13 +78,19 @@ export const mapAsync = async <T, U, E>(
  * @example
  * ```typescript
  * const result = err("not found");
- * const enhanced = mapErr(result, error => ({ code: 404, message: error }));
- * // Returns: Err with enhanced error object
+ * const enhanced = mapErr(result, error => ({
+ *   code: 404,
+ *   message: error,
+ *   timestamp: Date.now()
+ * }));
+ * // Returns: Result<never, ErrorObject> → Err with enhanced error object
  * ```
  *
  * @param result - The Result to transform
  * @param mapper - Function to transform the error value
  * @returns A new Result with original value or transformed error
+ * @see {@link mapErrAsync} for async error transformations
+ * @see {@link map} for value transformations
  */
 export const mapErr = <T, E, F>(
   result: Result<T, E>,
@@ -98,11 +110,14 @@ export const mapErr = <T, E, F>(
  *   await logError(error);
  *   return `Logged error: ${error}`;
  * });
+ * // Returns: Promise<Result<T, string>>
  * ```
  *
  * @param promise - Promise of Result to transform
  * @param mapper - Async function to transform the error value
  * @returns Promise of Result with original value or transformed error
+ * @see {@link mapErr} for sync error transformations
+ * @see {@link mapAsync} for value transformations
  */
 export const mapErrAsync = async <T, E, F>(
   promise: Promise<Result<T, E>>,
@@ -127,11 +142,22 @@ export const mapErrAsync = async <T, E, F>(
  *     ok({ user, profile })
  *   )
  * );
+ * // Returns: Result<{user: User, profile: Profile}, Error>
+ *
+ * // For complex chains, consider using chain() from result-ts/patterns:
+ * import { chain } from 'result-ts/patterns';
+ * const result = chain(getUser(1))
+ *   .then(user => getProfile(user.id))
+ *   .then(profile => getSettings(profile.id))
+ *   .then(settings => buildUserContext(profile, settings))
+ *   .run();
  * ```
  *
  * @param result - The Result to chain from
  * @param mapper - Function that returns a new Result
  * @returns The new Result or original error
+ * @see {@link andThenAsync} for async chaining
+ * @see {@link map} for simple transformations
  */
 export const andThen = <T, U, E>(
   result: Result<T, E>,
@@ -149,11 +175,14 @@ export const andThen = <T, U, E>(
  *   fetchUser(1),
  *   async (user) => await fetchProfile(user.id)
  * );
+ * // Returns: Promise<Result<Profile, Error>>
  * ```
  *
  * @param promise - Promise of Result to chain from
  * @param mapper - Async function that returns a Promise<Result>
  * @returns Promise of the new Result or original error
+ * @see {@link andThen} for sync chaining
+ * @see {@link mapAsync} for simple async transformations
  */
 export const andThenAsync = async <T, U, E>(
   promise: Promise<Result<T, E>>,
@@ -164,51 +193,20 @@ export const andThenAsync = async <T, U, E>(
 };
 
 /**
- * High-performance operation chaining with early exit on first error.
- * Lightweight alternative to generators for simple sequential operations.
- *
- * Performance: ~85% faster than generator-based approaches for simple chains.
- *
- * @example
- * ```typescript
- * const result = pipe(
- *   getUser(1),
- *   user => validateUser(user),
- *   user => enrichUser(user),
- *   user => saveUser(user)
- * );
- * // Stops at first error, no overhead
- * ```
- *
- * @param initialResult - Starting Result value
- * @param operations - Functions that transform values to new Results
- * @returns Final Result or first error encountered
- */
-export function pipe<T, E>(
-  initialResult: Result<T, E>,
-  ...operations: Array<(value: any) => Result<any, E>>
-): Result<any, E> {
-  let current = initialResult;
-
-  for (const operation of operations) {
-    if (current.type === ERR) return current;
-    current = operation(current.value);
-  }
-
-  return current;
-}
-
-/**
  * This entry point includes core essentials + iteration operations.
  *
  * Use for: data transformation, chaining, functional composition
  *
- * Key functions: map(), pipe(), andThen(), mapAsync()
+ * Key functions: map(), andThen(), mapAsync(), mapErr()
+ *
+ * For complex operation chaining, consider:
+ * - `chain()` from result-ts/patterns → Promise-like fluent API with unlimited operations
+ * - `safe()` from result-ts/patterns → Generator-based Rust-style ? operator
  *
  * Other available layers:
  * - `result-ts` → core essentials only
  * - `result-ts/batch` → core + array processing
  * - `result-ts/utils` → core + debugging utilities
- * - `result-ts/patterns` → core + advanced patterns
+ * - `result-ts/patterns` → core + advanced patterns (chain, safe, zip, apply)
  * - `result-ts/schema` → core + validation with Zod
  */
