@@ -8,6 +8,101 @@ export * from "@/core";
 import { OK, ERR, type Result } from "@/types";
 
 // =============================================================================
+// ERGONOMIC HELPERS (Individual Exports)
+// =============================================================================
+
+/**
+ * Creates a successful Result with proper type casting for generator functions.
+ * Eliminates the need for manual `as Result<T, E>` casting in generator contexts.
+ *
+ * @example
+ * ```typescript
+ * // Helper for generators - no casting needed
+ * const getUser = (id: number) => resultOk({ id, name: "John" });
+ * const getProfile = (user: any) => resultOk({ userId: user.id, bio: "Developer" });
+ *
+ * const result = safe(function* () {
+ *   const user = yield getUser(1);        // TypeScript infers correctly
+ *   const profile = yield getProfile(user); // No manual casting needed
+ *   return { user, profile };
+ * });
+ * ```
+ *
+ * @param value - The success value to wrap
+ * @returns A properly typed Result for generator contexts
+ */
+export const resultOk = <T>(value: T): Result<T, never> => ({
+  type: OK,
+  value,
+});
+
+/**
+ * Creates an error Result with proper type casting for generator functions.
+ * Eliminates the need for manual `as Result<T, E>` casting in generator contexts.
+ *
+ * @example
+ * ```typescript
+ * const validateUser = (user: any) =>
+ *   user.email ? resultOk(user) : resultErr("Email required");
+ *
+ * const result = safe(function* () {
+ *   const user = yield validateUser(userData); // TypeScript infers correctly
+ *   return user;
+ * });
+ * ```
+ *
+ * @param error - The error value to wrap
+ * @returns A properly typed error Result for generator contexts
+ */
+export const resultErr = <E>(error: E): Result<never, E> => ({
+  type: ERR,
+  error,
+});
+
+/**
+ * Fluent chain API for composing Result operations without generators.
+ * Provides Promise-like method chaining for TypeScript developers who prefer
+ * familiar fluent interfaces over generator syntax.
+ *
+ * @example
+ * ```typescript
+ * // Promise-like fluent chaining
+ * const result = chain(getUser(1))
+ *   .then(user => getProfile(user))
+ *   .then(profile => enrichProfile(profile))
+ *   .then(enriched => resultOk({ user: enriched.user, profile: enriched }))
+ *   .run();
+ *
+ * // Equivalent to generators but more familiar to TS devs
+ * ```
+ *
+ * @param initial - The initial Result to start the chain
+ * @returns A chainable interface for Result operations
+ */
+export const chain = <T, E>(initial: Result<T, E>) => ({
+  /**
+   * Chains another Result-returning operation, short-circuiting on errors.
+   *
+   * @param fn - Function that takes the success value and returns a new Result
+   * @returns A new chain with the transformed value type
+   */
+  then: <U>(fn: (value: T) => Result<U, E>) => {
+    if (initial.type === OK) {
+      return chain(fn(initial.value));
+    } else {
+      return chain(initial as Result<U, E>);
+    }
+  },
+
+  /**
+   * Executes the chain and returns the final Result.
+   *
+   * @returns The final Result of the chain
+   */
+  run: () => initial,
+});
+
+// =============================================================================
 // ADVANCED PATTERNS (Individual Exports)
 // =============================================================================
 
@@ -109,7 +204,7 @@ export const safeAsync = async <T, E>(
  * @example
  * ```typescript
  * const result = safe(function* () {
- *   const user = yield* yieldFn(getUser(id));
+ *   const user = yield yieldFn(getUser(id));
  *   return user;
  * });
  * ```
@@ -206,11 +301,14 @@ export const apply = <T, U, E>(
  * Use for: generator-based error handling, applicative patterns, advanced composition
  *
  * Key functions: safe(), safeAsync(), zip(), apply(), yieldFn()
+ * Ergonomic helpers: resultOk(), resultErr(), chain()
  *
  * Advanced features:
  * - safe() → Rust-style ? operator with generators
  * - zip() → combine multiple Results into tuples
  * - apply() → applicative functor patterns
+ * - chain() → Promise-like fluent API
+ * - resultOk/resultErr → generator typing helpers
  *
  * Other available layers:
  * - `result-ts` → core essentials only
