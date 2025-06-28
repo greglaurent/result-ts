@@ -778,8 +778,7 @@ describe("Patterns Module - Advanced Functional Patterns", () => {
       const result = await safeAsync(async function* () {
         const multiplierResult = yield await fetchMultiplier();
         const valueResult = yield await fetchValue();
-        const applied = yield apply(multiplierResult, valueResult); // ✅ FIXED: Remove extra ok() wrapping
-        return applied;
+        return multiplierResult(valueResult); // ✅ Direct function application
       });
 
       expect(result).toEqual({ type: "Ok", value: 30 });

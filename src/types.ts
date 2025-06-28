@@ -16,7 +16,7 @@ export interface Err<E> {
   error: E;
 }
 
-export type Result<T, E = unknown> = Ok<T> | Err<E>;
+export type Result<T, E = Error> = Ok<T> | Err<E>;
 
 // Export the constant types for external use
 export type OK = typeof OK;

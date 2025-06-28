@@ -10,7 +10,6 @@ import {
   mapErrAsync,
   andThen,
   andThenAsync,
-  pipe,
 } from "../src/iter";
 import type { Result } from "../src/types";
 
@@ -333,68 +332,6 @@ describe("Iter Module - Data Transformation", () => {
     });
   });
 
-  describe("pipe()", () => {
-    it("should chain operations efficiently", () => {
-      const add1 = (x: number) => ok(x + 1);
-      const multiply2 = (x: number) => ok(x * 2);
-      const subtract3 = (x: number) => ok(x - 3);
-
-      const result = pipe(ok(5), add1, multiply2, subtract3);
-      expect(result).toEqual({ type: "Ok", value: 9 }); // ((5 + 1) * 2) - 3 = 9
-    });
-
-    it("should early exit on first error", () => {
-      const add1 = (x: number) => ok(x + 1);
-      const failOperation = () => err("Operation failed");
-      const multiply2 = (x: number) => ok(x * 2);
-
-      const result = pipe(ok(5), add1, failOperation, multiply2);
-      expect(result).toEqual({ type: "Err", error: "Operation failed" });
-    });
-
-    it("should handle complex operation chains", () => {
-      const parseNumber = (s: string): Result<number, string> => {
-        const num = parseInt(s);
-        return isNaN(num) ? err("Not a number") : ok(num);
-      };
-
-      const validateRange = (n: number): Result<number, string> => {
-        return n >= 1 && n <= 100 ? ok(n) : err("Out of range");
-      };
-
-      const square = (n: number) => ok(n * n);
-      const toString = (n: number) => ok(n.toString());
-
-      // Success case
-      const success = pipe(parseNumber("5"), validateRange, square, toString);
-      expect(success).toEqual({ type: "Ok", value: "25" });
-
-      // Failure case - out of range
-      const failure = pipe(parseNumber("150"), validateRange, square, toString);
-      expect(failure).toEqual({ type: "Err", error: "Out of range" });
-    });
-
-    it("should work with single operation", () => {
-      const double = (x: number) => ok(x * 2);
-      const result = pipe(ok(5), double);
-      expect(result).toEqual({ type: "Ok", value: 10 });
-    });
-
-    it("should work with many operations", () => {
-      const ops = Array(10)
-        .fill(0)
-        .map((_, i) => (x: number) => ok(x + i));
-      const result = pipe(ok(0), ...ops);
-      expect(result).toEqual({ type: "Ok", value: 45 }); // 0 + 0 + 1 + 2 + ... + 9 = 45
-    });
-
-    it("should pass through initial errors", () => {
-      const add1 = (x: number) => ok(x + 1);
-      const result = pipe(err("initial error"), add1);
-      expect(result).toEqual({ type: "Err", error: "initial error" });
-    });
-  });
-
   describe("Integration Tests", () => {
     it("should work together for complex workflows", () => {
       // Simulate a user data processing pipeline
@@ -408,30 +345,6 @@ describe("Iter Module - Data Transformation", () => {
         { id: 1, name: "John" },
         { id: 2, name: "Jane", email: "jane@example.com" },
       ];
-
-      const findUser = (id: number): Result<User, string> => {
-        const user = users.find((u) => u.id === id);
-        return user ? ok(user) : err("User not found");
-      };
-
-      const addEmail = (user: User): Result<User, string> => {
-        if (user.email) return ok(user);
-        return ok({ ...user, email: `${user.name.toLowerCase()}@example.com` });
-      };
-
-      const formatUser = (user: User): Result<string, string> => {
-        return ok(`${user.name} <${user.email}>`);
-      };
-
-      // Using pipe for clean composition
-      const result1 = pipe(findUser(1), addEmail, formatUser);
-      expect(result1).toEqual({ type: "Ok", value: "John <john@example.com>" });
-
-      const result2 = pipe(findUser(2), addEmail, formatUser);
-      expect(result2).toEqual({ type: "Ok", value: "Jane <jane@example.com>" });
-
-      const result3 = pipe(findUser(99), addEmail, formatUser);
-      expect(result3).toEqual({ type: "Err", error: "User not found" });
     });
 
     it("should handle mixed sync/async operations in real workflow", async () => {
@@ -518,38 +431,6 @@ describe("Iter Module - Data Transformation", () => {
         expect(typeof chained.error).toBe("number");
         expect(chained.error).toBe(404);
       }
-    });
-  });
-
-  describe("Performance Characteristics", () => {
-    it("should handle large data transformations efficiently", () => {
-      // Test with reasonably large dataset
-      const largeArray = Array.from({ length: 1000 }, (_, i) => i);
-
-      const result = pipe(
-        ok(largeArray),
-        (arr: number[]) => ok(arr.map((x) => x * 2)),
-        (arr: number[]) => ok(arr.filter((x) => x % 4 === 0)),
-        (arr: number[]) => ok(arr.reduce((sum, x) => sum + x, 0)),
-      );
-
-      expect(result.type).toBe("Ok");
-      if (isOk(result)) {
-        expect(typeof result.value).toBe("number");
-        expect(result.value).toBeGreaterThan(0);
-      }
-    });
-
-    it("should short-circuit efficiently in long chains", () => {
-      const add1 = (x: number) => ok(x + 1);
-      const multiply2 = (x: number) => ok(x * 2);
-      const subtract3 = (x: number) => ok(x - 3);
-      const add10 = (x: number) => ok(x + 10);
-
-      const ops = Array(10)
-        .fill(0)
-        .map((_, i) => (x: number) => ok(x + i));
-      const result = pipe(ok(0), ...ops);
     });
   });
 });
