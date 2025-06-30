@@ -378,8 +378,8 @@ describe("Batch Operations", () => {
 
       // Test behavior and correctness, not timing performance
       expect(stats.total).toBe(10000);
-      expect(stats.okCount).toBe(6667); // Math: 10000 - Math.floor(10000/3)
-      expect(stats.errorCount).toBe(3333); // Math: Math.floor(10000/3)
+      expect(stats.okCount).toBe(6666); // Math: 10000 - 3334 (every 3rd element: 0,3,6...9999 = 3334 items)
+      expect(stats.errorCount).toBe(3334); // Math: positions 0,3,6,9...9999 = 3334 items
       expect(stats.okCount + stats.errorCount).toBe(stats.total);
       expect(stats.hasErrors).toBe(true);
       expect(stats.isEmpty).toBe(false);
@@ -393,23 +393,35 @@ describe("Batch Operations", () => {
   describe("findFirst()", () => {
     it("should find first successful result", () => {
       const results = [err("failed"), ok(42), ok(100)];
-      const first = findFirst(results);
-      expect(first).toEqual({ type: "Ok", value: 42 });
+      const result = findFirst(results);
+      expect(result).toEqual({
+        firstOk: 42,
+        okIndex: 1,
+        firstError: "failed",
+        errorIndex: 0
+      });
     });
 
     it("should return all errors if no success found", () => {
       const results = [err("error1"), err("error2"), err("error3")];
-      const first = findFirst(results);
-      expect(first).toEqual({
-        type: "Err",
-        error: ["error1", "error2", "error3"]
+      const result = findFirst(results);
+      expect(result).toEqual({
+        firstOk: undefined,
+        okIndex: -1,
+        firstError: "error1",
+        errorIndex: 0
       });
     });
 
     it("should handle empty arrays", () => {
       const results: Result<number, string>[] = [];
-      const first = findFirst(results);
-      expect(first).toEqual({ type: "Err", error: [] });
+      const result = findFirst(results);
+      expect(result).toEqual({
+        firstOk: undefined,
+        okIndex: -1,
+        firstError: undefined,
+        errorIndex: -1
+      });
     });
 
     it("should handle null/undefined elements gracefully", () => {
@@ -422,8 +434,13 @@ describe("Batch Operations", () => {
       const validResults = results.filter(
         (r): r is Result<string, string> => r != null,
       );
-      const firstResult = findFirst(validResults);
-      expect(firstResult).toEqual({ type: "Ok", value: "success" });
+      const result = findFirst(validResults);
+      expect(result).toEqual({
+        firstOk: "success",
+        okIndex: 1,
+        firstError: "error1",
+        errorIndex: 0
+      });
     });
   });
 
@@ -488,16 +505,19 @@ describe("Batch Operations", () => {
       expect(result).toEqual({ type: "Ok", value: "success" });
     });
 
-    it("should return first error if no successes", () => {
+    it("should return all errors if no successes", () => {
       const results = [err("first error"), err("second error")];
       const result = first(results);
-      expect(result).toEqual({ type: "Err", error: "first error" });
+      expect(result).toEqual({
+        type: "Err",
+        error: ["first error", "second error"]
+      });
     });
 
     it("should handle empty arrays", () => {
       const results: Result<number, string>[] = [];
       const result = first(results);
-      expect(result).toEqual({ type: "Err", error: "No results provided" });
+      expect(result).toEqual({ type: "Err", error: [] });
     });
 
     it("should handle null/undefined elements gracefully", () => {
