@@ -334,10 +334,10 @@ describe("Iteration Operations", () => {
         return ok({ id, name: "John" });
       };
 
-      const fetchUserPosts = async (user: { id: number }) => {
+      const fetchUserPosts = async (user: { id: number; name: string }) => {
         // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
         await Promise.resolve();
-        return ok([`Post by ${user.id}`]);
+        return ok([`Post by ${user.name}`]);
       };
 
       const result = await andThenAsync(fetchUser(1), fetchUserPosts);
