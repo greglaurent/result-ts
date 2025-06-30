@@ -1,11 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   ok,
-  Ok,
   Err,
   err,
   isOk,
-  isErr,
   safe,
   safeAsync,
   yieldFn,
@@ -13,7 +11,6 @@ import {
   zip,
   type Result,
 } from "../src/patterns";
-import { OK } from "@/types";
 
 // ✅ FIXED: Deterministic ID generation instead of Date.now()
 let mockIdCounter = 1000;
