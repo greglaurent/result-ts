@@ -17,12 +17,12 @@ import { OK, ERR, type Result } from "@/types";
  *
  * @example
  * ```typescript
- * const results = [ok(1), ok(2), ok(3)];
- * const combined = all(results);
- * // Returns: Result<number[], never> → Ok([1, 2, 3])
+ * const userValidations = [validateUser(1), validateUser(2), validateUser(3)];
+ * const allValid = all(userValidations);
+ * // Returns: Result<User[], ValidationError> → Ok([user1, user2, user3])
  *
- * const mixed = [ok(1), err("failed"), ok(3)];
- * const failed = all(mixed);
+ * const mixedResults = [ok(1), err("failed"), ok(3)];
+ * const failed = all(mixedResults);
  * // Returns: Result<never, string> → Err("failed")
  *
  * const withNulls = [ok(1), null, ok(3)];
@@ -33,7 +33,8 @@ import { OK, ERR, type Result } from "@/types";
  * @param results - Array of Results to combine
  * @returns Result containing array of all success values or first error
  * @see {@link allAsync} for Promise<Result> arrays
- * @see {@link partition} for separating successes and errors
+ * @see {@link allSettledAsync} for non-failing version that returns both successes and errors
+ * @see {@link partition} for separating successes and errors without failing
  * @see {@link oks} for extracting only success values
  */
 export const all = <T, E>(results: Array<Result<T, E>>): Result<T[], E> => {
@@ -56,9 +57,13 @@ export const all = <T, E>(results: Array<Result<T, E>>): Result<T[], E> => {
  *
  * @example
  * ```typescript
- * const promises = [fetchUser(1), fetchUser(2), fetchUser(3)];
- * const result = await allAsync(promises);
- * // Returns: Promise<Result<User[], Error>> → Ok([user1, user2, user3]) or first Err
+ * const apiCalls = [fetchUser(1), fetchUser(2), fetchUser(3)];
+ * const result = await allAsync(apiCalls);
+ * // Returns: Promise<Result<User[], ApiError>> → Ok([user1, user2, user3]) or first Err
+ *
+ * const batchProcessing = [processFile("a.txt"), processFile("b.txt")];
+ * const processed = await allAsync(batchProcessing);
+ * // Returns: Promise<Result<ProcessedFile[], Error>> - fails on first error
  *
  * const withNulls = [fetchUser(1), null, fetchUser(3)];
  * const safe = await allAsync(withNulls);
@@ -96,10 +101,15 @@ export const allAsync = async <T, E>(
  *
  * @example
  * ```typescript
- * const promises = [fetchUser(1), fetchUser(2), fetchUser(3)];
- * const { oks, errors } = await allSettledAsync(promises);
+ * const apiCalls = [fetchUser(1), fetchUser(2), fetchUser(3)];
+ * const { oks, errors } = await allSettledAsync(apiCalls);
  * console.log(`Loaded ${oks.length} users, ${errors.length} failed`);
- * // Returns: Promise<{oks: T[], errors: E[]}>
+ * // Returns: Promise<{oks: User[], errors: ApiError[]}>
+ *
+ * // Resilient batch processing - continues despite failures
+ * const fileProcessing = [processFile("a.txt"), processFile("b.txt"), processFile("c.txt")];
+ * const results = await allSettledAsync(fileProcessing);
+ * // Process what succeeded, log what failed
  * ```
  *
  * @param promises - Array of Promise<Result> to await and partition
@@ -133,9 +143,13 @@ export const allSettledAsync = async <T, E>(
  *
  * @example
  * ```typescript
- * const results = [ok(1), err("failed"), ok(3), err("error")];
- * const successes = oks(results);
- * // Returns: number[] → [1, 3]
+ * const validationResults = [validateEmail("a@b.com"), validateEmail("invalid"), validateEmail("c@d.com")];
+ * const validEmails = oks(validationResults);
+ * // Returns: string[] → ["a@b.com", "c@d.com"]
+ *
+ * const apiResponses = [ok(user1), err("timeout"), ok(user2), err("404")];
+ * const users = oks(apiResponses);
+ * // Returns: User[] → [user1, user2]
  *
  * const withNulls = [ok(1), null, ok(3), undefined];
  * const safe = oks(withNulls);
@@ -165,9 +179,13 @@ export const oks = <T, E>(results: Array<Result<T, E>>) => {
  *
  * @example
  * ```typescript
- * const results = [ok(1), err("failed"), ok(3), err("error")];
- * const errors = errs(results);
- * // Returns: string[] → ["failed", "error"]
+ * const validationResults = [validateUser(user1), validateUser(invalidUser), validateUser(user3)];
+ * const validationErrors = errs(validationResults);
+ * // Returns: ValidationError[] → [validation errors for invalid user]
+ *
+ * const apiResults = [ok(data1), err("timeout"), ok(data2), err("500 error")];
+ * const errors = errs(apiResults);
+ * // Returns: string[] → ["timeout", "500 error"]
  * ```
  *
  * @param results - Array of Results to extract errors from
@@ -191,14 +209,18 @@ export const errs = <T, E>(results: Array<Result<T, E>>) => {
  *
  * @example
  * ```typescript
- * const results = [ok(1), err("failed"), ok(3)];
- * const { oks, errors } = partition(results);
- * // Returns: {oks: number[], errors: string[]} → {oks: [1, 3], errors: ["failed"]}
+ * const userResults = [validateUser(data1), validateUser(data2), validateUser(data3)];
+ * const { oks: validUsers, errors: validationErrors } = partition(userResults);
+ * // Returns: {oks: User[], errors: ValidationError[]}
+ *
+ * // Process valid users, log validation errors
+ * validUsers.forEach(user => processUser(user));
+ * validationErrors.forEach(error => logError(error));
  * ```
  *
  * @param results - Array of Results to partition
  * @returns Object with oks and errors arrays
- * @see {@link partitionWith} for partition with metadata
+ * @see {@link partitionWith} for partition with metadata in single pass
  * @see {@link oks} and {@link errs} for individual extraction
  * @see {@link analyze} for statistics without value extraction
  */
@@ -227,15 +249,20 @@ export const partition = <T, E>(
  *
  * @example
  * ```typescript
- * const results = [ok(1), err("failed"), ok(3)];
- * const stats = partitionWith(results);
- * // Returns: {oks: [1, 3], errors: ["failed"], okCount: 2, errorCount: 1, total: 3}
+ * const formValidations = [validateName(name), validateEmail(email), validateAge(age)];
+ * const stats = partitionWith(formValidations);
+ * // Returns: {oks: ValidData[], errors: ValidationError[], okCount: 2, errorCount: 1, total: 3}
+ *
+ * console.log(`${stats.okCount}/${stats.total} fields valid`);
+ * if (stats.errorCount > 0) {
+ *   displayValidationErrors(stats.errors);
+ * }
  * ```
  *
  * @param results - Array of Results to partition with stats
  * @returns Object with oks, errors, and count metadata
  * @see {@link partition} for simple partition without metadata
- * @see {@link analyze} for statistics only
+ * @see {@link analyze} for statistics only without value extraction
  */
 export const partitionWith = <T, E>(
   results: Array<Result<T, E>>,
@@ -273,12 +300,14 @@ export const partitionWith = <T, E>(
  *
  * @example
  * ```typescript
- * const results = [ok(1), err("failed"), ok(3)];
- * const stats = analyze(results);
+ * const batchProcessing = [processFile("a.txt"), processFile("b.txt"), processFile("c.txt")];
+ * const stats = analyze(batchProcessing);
  * // Returns: {okCount: 2, errorCount: 1, total: 3, hasErrors: true, isEmpty: false}
  *
- * console.log(`Success rate: ${stats.okCount}/${stats.total}`);
- * if (stats.hasErrors) console.log("Some operations failed");
+ * console.log(`Success rate: ${stats.okCount}/${stats.total} (${(stats.okCount/stats.total*100).toFixed(1)}%)`);
+ * if (stats.hasErrors) {
+ *   console.log("Some operations failed - check error logs");
+ * }
  * ```
  *
  * @param results - Array of Results to analyze
@@ -322,9 +351,14 @@ export const analyze = <T, E>(
  *
  * @example
  * ```typescript
- * const results = [err("e1"), ok("success"), err("e2"), ok("ok2")];
- * const { firstOk, firstError, okIndex, errorIndex } = findFirst(results);
- * // Returns: {firstOk: "success", firstError: "e1", okIndex: 1, errorIndex: 0}
+ * const validationResults = [validateField(""), validateField("valid"), validateField("invalid")];
+ * const { firstOk, firstError, okIndex, errorIndex } = findFirst(validationResults);
+ * // Returns: {firstOk: "valid", firstError: ValidationError, okIndex: 1, errorIndex: 0}
+ *
+ * // Quick error reporting
+ * if (firstError) {
+ *   console.log(`First validation error at field ${errorIndex}: ${firstError.message}`);
+ * }
  * ```
  *
  * @param results - Array of Results to search
@@ -370,12 +404,24 @@ export const findFirst = <T, E>(
  *
  * @example
  * ```typescript
- * const results = [ok(5), err("failed"), ok(10)];
- * const sum = reduce(results, {
- *   onOk: (acc, value) => acc + value,
- *   onErr: (acc, error) => acc // ignore errors
+ * const paymentResults = [processPayment(100), processPayment(-50), processPayment(75)];
+ * const totalProcessed = reduce(paymentResults, {
+ *   onOk: (acc, amount) => acc + amount,
+ *   onErr: (acc, error) => {
+ *     console.log(`Payment failed: ${error.message}`);
+ *     return acc; // Don't include failed payments in total
+ *   }
  * }, 0);
- * // Returns: number → 15
+ * // Returns: number → sum of successful payments
+ *
+ * // Error categorization
+ * const errorCategories = reduce(validationResults, {
+ *   onOk: (acc) => acc,
+ *   onErr: (acc, error, index) => {
+ *     acc[error.field] = (acc[error.field] || 0) + 1;
+ *     return acc;
+ *   }
+ * }, {} as Record<string, number>);
  * ```
  *
  * @param results - Array of Results to reduce
@@ -414,18 +460,18 @@ export const reduce = <T, E, Acc>(
  *
  * @example
  * ```typescript
- * const results = [err("e1"), err("e2"), ok("success")];
- * const first = first(results);
- * // Returns: Result<string, string[]> → Ok("success")
+ * const backupStrategies = [tryPrimaryServer(), trySecondaryServer(), tryLocalCache()];
+ * const dataResult = first(backupStrategies);
+ * // Returns: Result<Data, ServerError[]> → Ok(data) from first working server
  *
- * const allFailed = [err("e1"), err("e2")];
- * const none = first(allFailed);
- * // Returns: Result<never, string[]> → Err(["e1", "e2"])
+ * const allFailed = [tryServer1(), tryServer2(), tryServer3()];
+ * const failureResult = first(allFailed);
+ * // Returns: Result<never, ServerError[]> → Err([error1, error2, error3])
  * ```
  *
  * @param results - Array of Results to search
  * @returns First Ok Result or Err containing all error values
- * @see {@link findFirst} for finding first of each type
+ * @see {@link findFirst} for finding first of each type with indices
  * @see {@link all} for converting all to success or first error
  */
 export const first = <T, E>(results: Array<Result<T, E>>): Result<T, E[]> => {
