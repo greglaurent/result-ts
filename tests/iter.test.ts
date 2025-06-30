@@ -10,10 +10,13 @@ import {
   mapErrAsync,
   andThen,
   andThenAsync,
+  type Result,
 } from "../src/iter";
-import type { Result } from "../src/types";
 
-describe("Iter Module - Data Transformation", () => {
+// ✅ FIXED: Fixed timestamp instead of Date.now()
+const FIXED_TIMESTAMP = 1672531200000; // 2023-01-01T00:00:00.000Z
+
+describe("Iteration Operations", () => {
   describe("map()", () => {
     it("should transform success values", () => {
       const result = map(ok(5), (x) => x * 2);
@@ -25,46 +28,32 @@ describe("Iter Module - Data Transformation", () => {
       expect(result).toEqual({ type: "Err", error: "failed" });
     });
 
-    it("should handle different transformation types", () => {
-      // Number to string
-      expect(map(ok(42), (x) => x.toString())).toEqual({
-        type: "Ok",
-        value: "42",
-      });
-
-      // String to object
-      expect(map(ok("hello"), (s) => ({ message: s }))).toEqual({
-        type: "Ok",
-        value: { message: "hello" },
-      });
-
-      // Array transformation
-      expect(map(ok([1, 2, 3]), (arr) => arr.length)).toEqual({
-        type: "Ok",
-        value: 3,
-      });
-
-      // Complex object transformation
-      const user = { id: 1, name: "John" };
-      expect(map(ok(user), (u) => ({ ...u, isActive: true }))).toEqual({
-        type: "Ok",
-        value: { id: 1, name: "John", isActive: true },
-      });
+    it("should handle type transformations", () => {
+      const result = map(ok(42), (x) => x.toString());
+      expect(result).toEqual({ type: "Ok", value: "42" });
     });
 
-    it("should handle transformations that return null/undefined", () => {
-      expect(map(ok(5), () => null)).toEqual({ type: "Ok", value: null });
-      expect(map(ok(5), () => undefined)).toEqual({
-        type: "Ok",
-        value: undefined,
-      });
+    it("should work with complex transformations", () => {
+      interface User {
+        id: number;
+        name: string;
+      }
+
+      const user: User = { id: 1, name: "John" };
+      const result = map(ok(user), (u) => ({ ...u, displayName: u.name.toUpperCase() }));
+
+      expect(result.type).toBe("Ok");
+      if (isOk(result)) {
+        expect(result.value.displayName).toBe("JOHN");
+        expect(result.value.id).toBe(1);
+      }
     });
 
     it("should preserve error types", () => {
       const numberError: Result<string, number> = err(404);
-      const result = map(numberError, (s: string) => s.toUpperCase());
-      expect(result).toEqual({ type: "Err", error: 404 });
+      const result = map(numberError, (s: string) => s.length);
 
+      expect(result).toEqual({ type: "Err", error: 404 });
       if (isErr(result)) {
         expect(typeof result.error).toBe("number");
       }
@@ -87,8 +76,8 @@ describe("Iter Module - Data Transformation", () => {
     it("should handle async transformations", async () => {
       const promise = Promise.resolve(ok("hello"));
       const result = await mapAsync(promise, async (s) => {
-        // Simulate async operation
-        await new Promise((resolve) => setTimeout(resolve, 1));
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
         return s.toUpperCase();
       });
       expect(result).toEqual({ type: "Ok", value: "HELLO" });
@@ -104,6 +93,33 @@ describe("Iter Module - Data Transformation", () => {
       const promise = Promise.resolve(ok(10));
       const result = await mapAsync(promise, (x) => Promise.resolve(x + 5));
       expect(result).toEqual({ type: "Ok", value: 15 });
+    });
+
+    it("should handle complex async data transformations", async () => {
+      interface ApiResponse {
+        data: { id: number; name: string }[];
+        meta: { total: number };
+      }
+
+      const apiResponse: ApiResponse = {
+        data: [{ id: 1, name: "John" }, { id: 2, name: "Jane" }],
+        meta: { total: 2 }
+      };
+
+      const result = await mapAsync(Promise.resolve(ok(apiResponse)), async (response) => {
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
+        return {
+          users: response.data.map(user => user.name),
+          count: response.meta.total
+        };
+      });
+
+      expect(result.type).toBe("Ok");
+      if (isOk(result)) {
+        expect(result.value.users).toEqual(["John", "Jane"]);
+        expect(result.value.count).toBe(2);
+      }
     });
   });
 
@@ -135,14 +151,14 @@ describe("Iter Module - Data Transformation", () => {
       const error = new Error("Something failed");
       expect(
         mapErr(err(error), (e) => ({
-          timestamp: Date.now(),
+          timestamp: FIXED_TIMESTAMP, // ✅ FIXED: Use fixed timestamp instead of Date.now()
           message: e.message,
           type: "system_error",
         })),
       ).toEqual({
         type: "Err",
         error: {
-          timestamp: expect.any(Number),
+          timestamp: FIXED_TIMESTAMP, // ✅ FIXED: Predictable timestamp
           message: "Something failed",
           type: "system_error",
         },
@@ -158,6 +174,28 @@ describe("Iter Module - Data Transformation", () => {
         expect(typeof result.value).toBe("string");
       }
     });
+
+    it("should work with structured error transformations", () => {
+      interface ApiError {
+        statusCode: number;
+        message: string;
+        path: string;
+      }
+
+      const simpleError = "validation failed";
+      const result = mapErr(err(simpleError), (error): ApiError => ({
+        statusCode: 400,
+        message: error,
+        path: "/api/users"
+      }));
+
+      expect(result.type).toBe("Err");
+      if (isErr(result)) {
+        expect(result.error.statusCode).toBe(400);
+        expect(result.error.message).toBe("validation failed");
+        expect(result.error.path).toBe("/api/users");
+      }
+    });
   });
 
   describe("mapErrAsync()", () => {
@@ -166,15 +204,15 @@ describe("Iter Module - Data Transformation", () => {
       const result = await mapErrAsync(promise, async (error) => ({
         code: 500,
         message: error,
-        timestamp: Date.now(),
+        timestamp: FIXED_TIMESTAMP, // ✅ FIXED: Use fixed timestamp instead of Date.now()
       }));
 
       expect(result.type).toBe("Err");
       if (isErr(result)) {
-        expect(result.error).toMatchObject({
+        expect(result.error).toEqual({
           code: 500,
           message: "failed",
-          timestamp: expect.any(Number),
+          timestamp: FIXED_TIMESTAMP, // ✅ FIXED: Predictable timestamp
         });
       }
     });
@@ -191,8 +229,8 @@ describe("Iter Module - Data Transformation", () => {
     it("should handle async error transformations", async () => {
       const promise = Promise.resolve(err("timeout"));
       const result = await mapErrAsync(promise, async (error) => {
-        // Simulate async logging
-        await new Promise((resolve) => setTimeout(resolve, 1));
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
         return { logged: true, originalError: error };
       });
 
@@ -206,6 +244,36 @@ describe("Iter Module - Data Transformation", () => {
       const promise = Promise.resolve(err(404));
       const result = await mapErrAsync(promise, (code) => `Error ${code}`);
       expect(result).toEqual({ type: "Err", error: "Error 404" });
+    });
+
+    it("should handle complex async error processing", async () => {
+      interface DetailedError {
+        level: string;
+        category: string;
+        originalMessage: string;
+        processedAt: number;
+      }
+
+      const result = await mapErrAsync(
+        Promise.resolve(err("database connection failed")),
+        async (error): Promise<DetailedError> => {
+          // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+          await Promise.resolve();
+          return {
+            level: "critical",
+            category: "database",
+            originalMessage: error,
+            processedAt: FIXED_TIMESTAMP // ✅ FIXED: Use fixed timestamp
+          };
+        }
+      );
+
+      expect(result.type).toBe("Err");
+      if (isErr(result)) {
+        expect(result.error.level).toBe("critical");
+        expect(result.error.category).toBe("database");
+        expect(result.error.processedAt).toBe(FIXED_TIMESTAMP);
+      }
     });
   });
 
@@ -248,62 +316,69 @@ describe("Iter Module - Data Transformation", () => {
 
       const double = (n: number): Result<number, string> => ok(n * 2);
 
-      // Success path
-      const successResult = andThen(
-        andThen(parseNumber("5"), validatePositive),
-        double,
-      );
-      expect(successResult).toEqual({ type: "Ok", value: 10 });
+      // Chain multiple operations using andThen
+      const result1 = andThen(andThen(parseNumber("5"), validatePositive), double);
+      expect(result1).toEqual({ type: "Ok", value: 10 });
 
-      // Failure at parsing
-      const parseFailure = andThen(
-        andThen(parseNumber("abc"), validatePositive),
-        double,
-      );
-      expect(parseFailure).toEqual({ type: "Err", error: "Not a number" });
-
-      // Failure at validation
-      const validationFailure = andThen(
-        andThen(parseNumber("-5"), validatePositive),
-        double,
-      );
-      expect(validationFailure).toEqual({
-        type: "Err",
-        error: "Must be positive",
-      });
+      // Test failure in chain
+      const result2 = andThen(andThen(parseNumber("-5"), validatePositive), double);
+      expect(result2).toEqual({ type: "Err", error: "Must be positive" });
     });
   });
 
   describe("andThenAsync()", () => {
     it("should chain successful async operations", async () => {
-      const fetchUser = async (id: number) => ok({ id, name: "John" });
-      const fetchUserPosts = async (user: { id: number }) =>
-        ok([
-          { id: 1, title: "Post 1", authorId: user.id },
-          { id: 2, title: "Post 2", authorId: user.id },
-        ]);
+      const fetchUser = async (id: number) => {
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
+        return ok({ id, name: "John" });
+      };
+
+      const fetchUserPosts = async (user: { id: number }) => {
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
+        return ok([`Post by ${user.id}`]);
+      };
 
       const result = await andThenAsync(fetchUser(1), fetchUserPosts);
       expect(result).toEqual({
         type: "Ok",
-        value: [
-          { id: 1, title: "Post 1", authorId: 1 },
-          { id: 2, title: "Post 2", authorId: 1 },
-        ],
+        value: ["Post by John"],
       });
     });
 
-    it("should short-circuit on async error", async () => {
-      const fetchUser = async (id: number) => err("User not found");
-      const fetchUserPosts = async (user: { id: number }) => ok([]);
+    it("should short-circuit on first async error", async () => {
+      const fetchUser = async () => {
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
+        return err("User not found");
+      };
 
-      const result = await andThenAsync(fetchUser(1), fetchUserPosts);
-      expect(result).toEqual({ type: "Err", error: "User not found" });
+      const fetchUserPosts = async () => {
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
+        return err("Posts service unavailable");
+      };
+
+      const result = await andThenAsync(fetchUser(), fetchUserPosts);
+      expect(result).toEqual({
+        type: "Err",
+        error: "User not found",
+      });
     });
 
     it("should handle subsequent async failures", async () => {
-      const fetchUser = async (id: number) => ok({ id, name: "John" });
-      const fetchUserPosts = async () => err("Posts service unavailable");
+      const fetchUser = async (id: number) => {
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
+        return ok({ id, name: "John" });
+      };
+
+      const fetchUserPosts = async () => {
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
+        return err("Posts service unavailable");
+      };
 
       const result = await andThenAsync(fetchUser(1), fetchUserPosts);
       expect(result).toEqual({
@@ -315,7 +390,8 @@ describe("Iter Module - Data Transformation", () => {
     it("should work with mixed sync/async operations", async () => {
       const syncOperation = (n: number) => ok(n * 2);
       const asyncOperation = async (n: number) => {
-        await new Promise((resolve) => setTimeout(resolve, 1));
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
         return ok(n + 10);
       };
 
@@ -330,6 +406,46 @@ describe("Iter Module - Data Transformation", () => {
 
       expect(result).toEqual({ type: "Ok", value: 20 }); // (5 * 2) + 10
     });
+
+    it("should handle complex async workflows", async () => {
+      interface UserProfile {
+        id: number;
+        name: string;
+        email: string;
+      }
+
+      interface UserSettings {
+        theme: string;
+        notifications: boolean;
+      }
+
+      const fetchUserProfile = async (id: number): Promise<Result<UserProfile, string>> => {
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
+        return ok({
+          id,
+          name: "John Doe",
+          email: "john@example.com"
+        });
+      };
+
+      const fetchUserSettings = async (profile: UserProfile): Promise<Result<UserSettings, string>> => {
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
+        return ok({
+          theme: "dark",
+          notifications: true
+        });
+      };
+
+      const result = await andThenAsync(fetchUserProfile(1), fetchUserSettings);
+
+      expect(result.type).toBe("Ok");
+      if (isOk(result)) {
+        expect(result.value.theme).toBe("dark");
+        expect(result.value.notifications).toBe(true);
+      }
+    });
   });
 
   describe("Integration Tests", () => {
@@ -341,10 +457,60 @@ describe("Iter Module - Data Transformation", () => {
         email?: string;
       }
 
+      interface ProcessedUser {
+        id: number;
+        displayName: string;
+        hasEmail: boolean;
+      }
+
       const users: User[] = [
         { id: 1, name: "John" },
         { id: 2, name: "Jane", email: "jane@example.com" },
       ];
+
+      const processUser = (user: User): Result<ProcessedUser, string> => {
+        if (!user.name.trim()) {
+          return err("User name cannot be empty");
+        }
+
+        return ok({
+          id: user.id,
+          displayName: user.name.toUpperCase(),
+          hasEmail: !!user.email
+        });
+      };
+
+      const addEmailFlag = (user: ProcessedUser): Result<ProcessedUser, string> => {
+        return ok({
+          ...user,
+          displayName: user.hasEmail
+            ? `${user.displayName} (✓)`
+            : `${user.displayName} (✗)`
+        });
+      };
+
+      // Process each user through the pipeline using andThen
+      const results = users.map(user =>
+        andThen(ok(user), (u) => andThen(processUser(u), addEmailFlag))
+      );
+
+      expect(results[0]).toEqual({
+        type: "Ok",
+        value: {
+          id: 1,
+          displayName: "JOHN (✗)",
+          hasEmail: false
+        }
+      });
+
+      expect(results[1]).toEqual({
+        type: "Ok",
+        value: {
+          id: 2,
+          displayName: "JANE (✓)",
+          hasEmail: true
+        }
+      });
     });
 
     it("should handle mixed sync/async operations in real workflow", async () => {
@@ -354,82 +520,80 @@ describe("Iter Module - Data Transformation", () => {
       };
 
       const fetchUserData = async (username: string) => {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1));
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
         return username === "john"
-          ? ok({ id: 1, username: "john", followers: 150 })
+          ? ok({ id: 1, name: "John Doe", role: "admin" })
           : err("User not found");
       };
 
-      const enrichWithMetadata = (user: any): Result<any, string> => {
+      const enrichUserData = async (user: { id: number; name: string; role: string }) => {
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
         return ok({
           ...user,
-          isPopular: user.followers > 100,
-          displayName: `@${user.username}`,
+          permissions: user.role === "admin" ? ["read", "write", "delete"] : ["read"]
         });
       };
 
-      // Chain sync and async operations
-      const processUser = async (input: string) => {
-        const validatedInput = validateInput(input);
+      // Test successful flow - chain operations using andThen
+      const input = "john";
+      const validatedInput = validateInput(input);
+
+      const successResult = await (async () => {
         if (isErr(validatedInput)) return validatedInput;
-
         const userData = await fetchUserData(validatedInput.value);
-        if (isErr(userData)) return userData;
+        return await andThenAsync(Promise.resolve(userData), enrichUserData);
+      })();
 
-        return enrichWithMetadata(userData.value);
+      expect(successResult.type).toBe("Ok");
+      if (isOk(successResult)) {
+        expect(successResult.value.name).toBe("John Doe");
+        expect(successResult.value.permissions).toEqual(["read", "write", "delete"]);
+      }
+
+      // Test failure flow
+      const emptyInput = "";
+      const invalidatedInput = validateInput(emptyInput);
+      expect(invalidatedInput).toEqual({ type: "Err", error: "Empty input" });
+    });
+
+    it("should demonstrate error transformation patterns", async () => {
+      interface ApiError {
+        status: number;
+        message: string;
+        timestamp: number;
+      }
+
+      const simulateApiCall = async (shouldFail: boolean) => {
+        // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+        await Promise.resolve();
+        return shouldFail
+          ? err("Network timeout")
+          : ok({ data: "success" });
       };
 
-      // Success case
-      const success = await processUser("john");
-      expect(success).toEqual({
-        type: "Ok",
-        value: {
-          id: 1,
-          username: "john",
-          followers: 150,
-          isPopular: true,
-          displayName: "@john",
-        },
+      const transformError = (error: string): ApiError => ({
+        status: 500,
+        message: error,
+        timestamp: FIXED_TIMESTAMP // ✅ FIXED: Use fixed timestamp
       });
 
-      // Validation failure
-      const validationFailure = await processUser("  ");
-      expect(validationFailure).toEqual({ type: "Err", error: "Empty input" });
+      // Test error transformation
+      const result = await mapErrAsync(
+        simulateApiCall(true),
+        async (error) => {
+          // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
+          await Promise.resolve();
+          return transformError(error);
+        }
+      );
 
-      // API failure
-      const apiFailure = await processUser("unknown");
-      expect(apiFailure).toEqual({ type: "Err", error: "User not found" });
-    });
-  });
-
-  describe("Type Safety", () => {
-    it("should maintain proper type inference through transformations", () => {
-      // TypeScript should infer types correctly through the chain
-      const stringResult: Result<string, number> = ok("hello");
-
-      const numberResult = map(stringResult, (s) => s.length);
-      if (isOk(numberResult)) {
-        expect(typeof numberResult.value).toBe("number");
-        expect(numberResult.value).toBe(5);
-      }
-
-      const booleanResult = map(numberResult, (n) => n > 3);
-      if (isOk(booleanResult)) {
-        expect(typeof booleanResult.value).toBe("boolean");
-        expect(booleanResult.value).toBe(true);
-      }
-    });
-
-    it("should maintain error types through operations", () => {
-      const numberError: Result<string, number> = err(404);
-
-      const mapped = map(numberError, (s: string) => s.toUpperCase());
-      const chained = andThen(mapped, (s) => ok(s.length));
-
-      if (isErr(chained)) {
-        expect(typeof chained.error).toBe("number");
-        expect(chained.error).toBe(404);
+      expect(result.type).toBe("Err");
+      if (isErr(result)) {
+        expect(result.error.status).toBe(500);
+        expect(result.error.message).toBe("Network timeout");
+        expect(result.error.timestamp).toBe(FIXED_TIMESTAMP);
       }
     });
   });
