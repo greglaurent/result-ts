@@ -8,6 +8,71 @@ export * from "@/core";
 import { OK, ERR, type Result } from "@/types";
 
 // =============================================================================
+// RUNTIME VALIDATION HELPERS
+// =============================================================================
+
+/**
+ * Validates that a parameter is a proper Result object.
+ * Provides helpful error messages for common mistakes.
+ */
+const validateResult = <T, E>(
+  result: Result<T, E>,
+  functionName: string,
+): void => {
+  if (!result || typeof result !== "object") {
+    throw new TypeError(
+      `${functionName}: First argument must be a Result object, got ${typeof result}`,
+    );
+  }
+  const resultObj = result as any;
+  if (!("type" in resultObj)) {
+    throw new TypeError(
+      `${functionName}: Result must have a 'type' property (Ok or Err)`,
+    );
+  }
+  if (resultObj.type !== OK && resultObj.type !== ERR) {
+    throw new TypeError(
+      `${functionName}: Invalid Result type '${resultObj.type}', expected '${OK}' or '${ERR}'`,
+    );
+  }
+  if (resultObj.type === OK && !("value" in resultObj)) {
+    throw new TypeError(
+      `${functionName}: Ok Result must have a 'value' property`,
+    );
+  }
+  if (resultObj.type === ERR && !("error" in resultObj)) {
+    throw new TypeError(
+      `${functionName}: Err Result must have an 'error' property`,
+    );
+  }
+};
+
+/**
+ * Validates that a callback parameter is a function (when provided).
+ */
+const validateCallback = (
+  callback: unknown,
+  functionName: string,
+  parameterName: string,
+  isOptional: boolean = true,
+): void => {
+  if (callback === undefined || callback === null) {
+    if (!isOptional) {
+      throw new TypeError(
+        `${functionName}: ${parameterName} is required but was ${callback}`,
+      );
+    }
+    return; // Optional callback is fine
+  }
+
+  if (typeof callback !== "function") {
+    throw new TypeError(
+      `${functionName}: ${parameterName} must be a function, got ${typeof callback}`,
+    );
+  }
+};
+
+// =============================================================================
 // UTILITY FUNCTIONS (Individual Exports)
 // =============================================================================
 
@@ -36,6 +101,7 @@ import { OK, ERR, type Result } from "@/types";
  * @param onOk - Optional callback for success values
  * @param onErr - Optional callback for error values
  * @returns The original Result unchanged
+ * @throws TypeError if result is not a valid Result object or callbacks are not functions
  * @see {@link tap} for side effects on success values only
  * @see {@link tapErr} for side effects on error values only
  */
@@ -44,6 +110,10 @@ export const inspect = <T, E>(
   onOk?: (value: T) => void,
   onErr?: (error: E) => void,
 ): Result<T, E> => {
+  validateResult(result, "inspect()");
+  validateCallback(onOk, "inspect()", "onOk", true);
+  validateCallback(onErr, "inspect()", "onErr", true);
+
   if (result.type === OK && onOk) {
     onOk(result.value);
   } else if (result.type === ERR && onErr) {
@@ -82,6 +152,7 @@ export const inspect = <T, E>(
  * @param result - The Result to tap
  * @param fn - Function to call with success value
  * @returns The original Result unchanged
+ * @throws TypeError if result is not a valid Result object or fn is not a function
  * @see {@link tapErr} for side effects on error values
  * @see {@link inspect} for side effects on both success and error values
  */
@@ -89,6 +160,9 @@ export const tap = <T, E>(
   result: Result<T, E>,
   fn: (value: T) => void,
 ): Result<T, E> => {
+  validateResult(result, "tap()");
+  validateCallback(fn, "tap()", "fn", false);
+
   if (result.type === OK) {
     fn(result.value);
   }
@@ -129,6 +203,7 @@ export const tap = <T, E>(
  * @param result - The Result to tap
  * @param fn - Function to call with error value
  * @returns The original Result unchanged
+ * @throws TypeError if result is not a valid Result object or fn is not a function
  * @see {@link tap} for side effects on success values
  * @see {@link inspect} for side effects on both success and error values
  */
@@ -136,6 +211,9 @@ export const tapErr = <T, E>(
   result: Result<T, E>,
   fn: (error: E) => void,
 ): Result<T, E> => {
+  validateResult(result, "tapErr()");
+  validateCallback(fn, "tapErr()", "fn", false);
+
   if (result.type === ERR) {
     fn(result.error);
   }
@@ -175,6 +253,7 @@ export const fromNullable = <T>(
   value: T | null | undefined,
   errorValue: unknown = "Value is null or undefined",
 ): Result<T, unknown> => {
+  // Note: No validation needed - this function accepts any value type by design
   return value != null ? { type: OK, value } : { type: ERR, error: errorValue };
 };
 
@@ -209,9 +288,11 @@ export const fromNullable = <T>(
  *
  * @param result - The Result to convert
  * @returns The success value or null for errors
+ * @throws TypeError if result is not a valid Result object
  * @see {@link fromNullable} for converting nullable values to Results
  */
 export const toNullable = <T, E>(result: Result<T, E>): T | null => {
+  validateResult(result, "toNullable()");
   return result.type === OK ? result.value : null;
 };
 

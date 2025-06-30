@@ -8,7 +8,7 @@ export * from "@/core";
 import { OK, ERR, type Result } from "@/types";
 
 // =============================================================================
-// RUNTIME VALIDATION HELPER
+// RUNTIME VALIDATION HELPERS
 // =============================================================================
 
 /**
@@ -27,7 +27,7 @@ const validateResult = <T, E>(
   const resultObj = result as any;
   if (!("type" in resultObj)) {
     throw new TypeError(
-      `${functionName}: Argument must have a 'type' property (Ok or Err)`,
+      `${functionName}: Result must have a 'type' property (Ok or Err)`,
     );
   }
   if (resultObj.type !== OK && resultObj.type !== ERR) {
@@ -43,6 +43,37 @@ const validateResult = <T, E>(
   if (resultObj.type === ERR && !("error" in resultObj)) {
     throw new TypeError(
       `${functionName}: Err Result must have an 'error' property`,
+    );
+  }
+};
+
+/**
+ * Validates that a mapper parameter is a function.
+ */
+const validateMapper = (
+  mapper: unknown,
+  functionName: string,
+  parameterName: string = "mapper",
+): void => {
+  if (typeof mapper !== "function") {
+    throw new TypeError(
+      `${functionName}: ${parameterName} must be a function, got ${typeof mapper}`,
+    );
+  }
+};
+
+/**
+ * Validates that a promise parameter is actually a Promise.
+ */
+const validatePromise = (promise: unknown, functionName: string): void => {
+  if (!promise || typeof promise !== "object" || !("then" in promise)) {
+    throw new TypeError(
+      `${functionName}: First argument must be a Promise<Result>, got ${typeof promise}`,
+    );
+  }
+  if (typeof (promise as any).then !== "function") {
+    throw new TypeError(
+      `${functionName}: First argument must be a Promise (missing 'then' method)`,
     );
   }
 };
@@ -68,7 +99,7 @@ const validateResult = <T, E>(
  * @param result - The Result to transform
  * @param mapper - Function to transform the success value
  * @returns A new Result with the transformed value or original error
- * @throws TypeError if result is not a valid Result object
+ * @throws TypeError if result is not a valid Result object or mapper is not a function
  * @see {@link mapAsync} for async transformations
  * @see {@link mapErr} for error transformations
  * @see {@link andThen} for chaining operations that return Results
@@ -78,6 +109,7 @@ export const map = <T, U, E>(
   mapper: (value: T) => U,
 ): Result<U, E> => {
   validateResult(result, "map()");
+  validateMapper(mapper, "map()");
   return result.type === OK
     ? { type: OK, value: mapper(result.value) }
     : result;
@@ -99,6 +131,7 @@ export const map = <T, U, E>(
  * @param promise - Promise of Result to transform
  * @param mapper - Async function to transform the success value
  * @returns Promise of Result with transformed value or original error
+ * @throws TypeError if promise is not a Promise or mapper is not a function
  * @see {@link map} for sync transformations
  * @see {@link andThenAsync} for async chaining
  */
@@ -106,8 +139,12 @@ export const mapAsync = async <T, U, E>(
   promise: Promise<Result<T, E>>,
   mapper: (value: T) => U | Promise<U>,
 ): Promise<Result<U, E>> => {
+  validatePromise(promise, "mapAsync()");
+  validateMapper(mapper, "mapAsync()");
+
   const result = await promise;
   validateResult(result, "mapAsync()");
+
   if (result.type === OK) {
     const mapped = await mapper(result.value);
     return { type: OK, value: mapped };
@@ -132,7 +169,7 @@ export const mapAsync = async <T, U, E>(
  * @param result - The Result to transform
  * @param mapper - Function to transform the error value
  * @returns A new Result with original value or transformed error
- * @throws TypeError if result is not a valid Result object
+ * @throws TypeError if result is not a valid Result object or mapper is not a function
  * @see {@link mapErrAsync} for async error transformations
  * @see {@link map} for value transformations
  */
@@ -141,6 +178,7 @@ export const mapErr = <T, E, F>(
   mapper: (error: E) => F,
 ): Result<T, F> => {
   validateResult(result, "mapErr()");
+  validateMapper(mapper, "mapErr()");
   return result.type === ERR
     ? { type: ERR, error: mapper(result.error) }
     : result;
@@ -161,6 +199,7 @@ export const mapErr = <T, E, F>(
  * @param promise - Promise of Result to transform
  * @param mapper - Async function to transform the error value
  * @returns Promise of Result with original value or transformed error
+ * @throws TypeError if promise is not a Promise or mapper is not a function
  * @see {@link mapErr} for sync error transformations
  * @see {@link mapAsync} for value transformations
  */
@@ -168,8 +207,12 @@ export const mapErrAsync = async <T, E, F>(
   promise: Promise<Result<T, E>>,
   mapper: (error: E) => F | Promise<F>,
 ): Promise<Result<T, F>> => {
+  validatePromise(promise, "mapErrAsync()");
+  validateMapper(mapper, "mapErrAsync()");
+
   const result = await promise;
   validateResult(result, "mapErrAsync()");
+
   if (result.type === ERR) {
     const mapped = await mapper(result.error);
     return { type: ERR, error: mapped };
@@ -202,7 +245,7 @@ export const mapErrAsync = async <T, E, F>(
  * @param result - The Result to chain from
  * @param mapper - Function that returns a new Result
  * @returns The new Result or original error
- * @throws TypeError if result is not a valid Result object
+ * @throws TypeError if result is not a valid Result object or mapper is not a function
  * @see {@link andThenAsync} for async chaining
  * @see {@link map} for simple transformations
  */
@@ -211,6 +254,7 @@ export const andThen = <T, U, E>(
   mapper: (value: T) => Result<U, E>,
 ): Result<U, E> => {
   validateResult(result, "andThen()");
+  validateMapper(mapper, "andThen()");
   return result.type === OK ? mapper(result.value) : result;
 };
 
@@ -229,6 +273,7 @@ export const andThen = <T, U, E>(
  * @param promise - Promise of Result to chain from
  * @param mapper - Async function that returns a Promise<Result>
  * @returns Promise of the new Result or original error
+ * @throws TypeError if promise is not a Promise or mapper is not a function
  * @see {@link andThen} for sync chaining
  * @see {@link mapAsync} for simple async transformations
  */
@@ -236,8 +281,12 @@ export const andThenAsync = async <T, U, E>(
   promise: Promise<Result<T, E>>,
   mapper: (value: T) => Promise<Result<U, E>>,
 ): Promise<Result<U, E>> => {
+  validatePromise(promise, "andThenAsync()");
+  validateMapper(mapper, "andThenAsync()");
+
   const result = await promise;
   validateResult(result, "andThenAsync()");
+
   return result.type === OK ? await mapper(result.value) : result;
 };
 
