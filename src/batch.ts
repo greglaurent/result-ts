@@ -8,6 +8,71 @@ export * from "@/core";
 import { OK, ERR, type Result } from "@/types";
 
 // =============================================================================
+// RUNTIME VALIDATION HELPERS
+// =============================================================================
+
+/**
+ * Validates that a parameter is a proper Result object.
+ * Provides helpful error messages for common mistakes.
+ */
+const validateResult = <T, E>(
+  result: Result<T, E>,
+  functionName: string,
+  index?: number,
+): void => {
+  const indexInfo = index !== undefined ? ` at index ${index}` : "";
+
+  if (!result || typeof result !== "object") {
+    throw new TypeError(
+      `${functionName}: Result${indexInfo} must be a Result object, got ${typeof result}`,
+    );
+  }
+  const resultObj = result as any;
+  if (!("type" in resultObj)) {
+    throw new TypeError(
+      `${functionName}: Result${indexInfo} must have a 'type' property (Ok or Err)`,
+    );
+  }
+  if (resultObj.type !== OK && resultObj.type !== ERR) {
+    throw new TypeError(
+      `${functionName}: Invalid Result type '${resultObj.type}'${indexInfo}, expected '${OK}' or '${ERR}'`,
+    );
+  }
+  if (resultObj.type === OK && !("value" in resultObj)) {
+    throw new TypeError(
+      `${functionName}: Ok Result${indexInfo} must have a 'value' property`,
+    );
+  }
+  if (resultObj.type === ERR && !("error" in resultObj)) {
+    throw new TypeError(
+      `${functionName}: Err Result${indexInfo} must have an 'error' property`,
+    );
+  }
+};
+
+/**
+ * Validates an array of Results, skipping null/undefined elements as documented.
+ */
+const validateResultArray = <T, E>(
+  results: Array<Result<T, E>>,
+  functionName: string,
+): void => {
+  if (!Array.isArray(results)) {
+    throw new TypeError(
+      `${functionName}: First argument must be an array of Results, got ${typeof results}`,
+    );
+  }
+
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    // Skip null/undefined as these functions handle them gracefully
+    if (result != null) {
+      validateResult(result, functionName, i);
+    }
+  }
+};
+
+// =============================================================================
 // BATCH OPERATIONS (Individual Exports)
 // =============================================================================
 
@@ -32,12 +97,15 @@ import { OK, ERR, type Result } from "@/types";
  *
  * @param results - Array of Results to combine
  * @returns Result containing array of all success values or first error
- * @see {@link allAsync} for Promise<Result> arrays
+ * @throws TypeError if results is not an array or contains invalid Result objects
+ * @see {@link allAsync} for Promise<r> arrays
  * @see {@link allSettledAsync} for non-failing version that returns both successes and errors
  * @see {@link partition} for separating successes and errors without failing
  * @see {@link oks} for extracting only success values
  */
 export const all = <T, E>(results: Array<Result<T, E>>): Result<T[], E> => {
+  validateResultArray(results, "all()");
+
   const values = [];
   for (const result of results) {
     if (!result) continue; // Skip null/undefined elements gracefully
@@ -52,7 +120,7 @@ export const all = <T, E>(results: Array<Result<T, E>>): Result<T[], E> => {
 };
 
 /**
- * Waits for all Promise<Result> to settle, then combines like all().
+ * Waits for all Promise<r> to settle, then combines like all().
  * Gracefully handles null/undefined array elements.
  *
  * @example
@@ -70,19 +138,28 @@ export const all = <T, E>(results: Array<Result<T, E>>): Result<T[], E> => {
  * // Returns: Promise<Result<User[], Error>> → Ok([user1, user3]) - null elements ignored
  * ```
  *
- * @param promises - Array of Promise<Result> to await and combine
+ * @param promises - Array of Promise<r> to await and combine
  * @returns Promise of Result containing all success values or first error
+ * @throws TypeError if promises is not an array
  * @see {@link all} for synchronous version
  * @see {@link allSettledAsync} for non-failing version that returns both successes and errors
  */
 export const allAsync = async <T, E>(
   promises: Array<Promise<Result<T, E>>>,
 ): Promise<Result<T[], E>> => {
+  if (!Array.isArray(promises)) {
+    throw new TypeError(
+      `allAsync(): First argument must be an array of Promise<Result>, got ${typeof promises}`,
+    );
+  }
+
   const results = await Promise.all(promises.filter((p) => p != null)); // Filter nulls before Promise.all
   const values = [];
 
-  for (const result of results) {
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
     if (!result) continue; // Extra safety
+    validateResult(result, "allAsync()", i);
     if (result.type === ERR) {
       return result;
     }
@@ -95,7 +172,7 @@ export const allAsync = async <T, E>(
 };
 
 /**
- * Waits for all Promise<Result> to settle and partitions successes from errors.
+ * Waits for all Promise<r> to settle and partitions successes from errors.
  * Unlike allAsync, this never fails and returns both successes and errors.
  * Gracefully handles null/undefined array elements.
  *
@@ -112,20 +189,29 @@ export const allAsync = async <T, E>(
  * // Process what succeeded, log what failed
  * ```
  *
- * @param promises - Array of Promise<Result> to await and partition
+ * @param promises - Array of Promise<r> to await and partition
  * @returns Promise of object with separated oks and errors arrays
+ * @throws TypeError if promises is not an array
  * @see {@link allAsync} for fail-fast version
  * @see {@link partition} for synchronous version
  */
 export const allSettledAsync = async <T, E>(
   promises: Array<Promise<Result<T, E>>>,
 ): Promise<{ oks: T[]; errors: E[] }> => {
+  if (!Array.isArray(promises)) {
+    throw new TypeError(
+      `allSettledAsync(): First argument must be an array of Promise<Result>, got ${typeof promises}`,
+    );
+  }
+
   const results = await Promise.all(promises.filter((p) => p != null));
   const oks = [];
   const errors = [];
 
-  for (const result of results) {
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
     if (!result) continue;
+    validateResult(result, "allSettledAsync()", i);
     if (result.type === OK) {
       oks.push(result.value);
     } else if (result.type === ERR) {
@@ -158,11 +244,14 @@ export const allSettledAsync = async <T, E>(
  *
  * @param results - Array of Results to extract successes from
  * @returns Array of success values (empty if none)
+ * @throws TypeError if results is not an array or contains invalid Result objects
  * @see {@link errs} for extracting error values
  * @see {@link partition} for getting both successes and errors
  * @see {@link all} for converting to Result<T[], E>
  */
 export const oks = <T, E>(results: Array<Result<T, E>>) => {
+  validateResultArray(results, "oks()");
+
   const values = [];
   for (const result of results) {
     if (result && result.type === OK) {
@@ -190,10 +279,13 @@ export const oks = <T, E>(results: Array<Result<T, E>>) => {
  *
  * @param results - Array of Results to extract errors from
  * @returns Array of error values (empty if none)
+ * @throws TypeError if results is not an array or contains invalid Result objects
  * @see {@link oks} for extracting success values
  * @see {@link partition} for getting both successes and errors
  */
 export const errs = <T, E>(results: Array<Result<T, E>>) => {
+  validateResultArray(results, "errs()");
+
   const errors = [];
   for (const result of results) {
     if (result && result.type === ERR) {
@@ -220,6 +312,7 @@ export const errs = <T, E>(results: Array<Result<T, E>>) => {
  *
  * @param results - Array of Results to partition
  * @returns Object with oks and errors arrays
+ * @throws TypeError if results is not an array or contains invalid Result objects
  * @see {@link partitionWith} for partition with metadata in single pass
  * @see {@link oks} and {@link errs} for individual extraction
  * @see {@link analyze} for statistics without value extraction
@@ -227,6 +320,8 @@ export const errs = <T, E>(results: Array<Result<T, E>>) => {
 export const partition = <T, E>(
   results: Array<Result<T, E>>,
 ): { oks: T[]; errors: E[] } => {
+  validateResultArray(results, "partition()");
+
   const oks = [];
   const errors = [];
 
@@ -261,6 +356,7 @@ export const partition = <T, E>(
  *
  * @param results - Array of Results to partition with stats
  * @returns Object with oks, errors, and count metadata
+ * @throws TypeError if results is not an array or contains invalid Result objects
  * @see {@link partition} for simple partition without metadata
  * @see {@link analyze} for statistics only without value extraction
  */
@@ -273,6 +369,8 @@ export const partitionWith = <T, E>(
   errorCount: number;
   total: number;
 } => {
+  validateResultArray(results, "partitionWith()");
+
   const oks = [];
   const errors = [];
 
@@ -312,6 +410,7 @@ export const partitionWith = <T, E>(
  *
  * @param results - Array of Results to analyze
  * @returns Statistics object with counts and boolean flags
+ * @throws TypeError if results is not an array or contains invalid Result objects
  * @see {@link partitionWith} for analysis with value extraction
  * @see {@link partition} for simple separation
  */
@@ -324,6 +423,8 @@ export const analyze = <T, E>(
   hasErrors: boolean;
   isEmpty: boolean;
 } => {
+  validateResultArray(results, "analyze()");
+
   let okCount = 0;
   let errorCount = 0;
 
@@ -363,6 +464,7 @@ export const analyze = <T, E>(
  *
  * @param results - Array of Results to search
  * @returns Object with first values and their indices (-1 if not found)
+ * @throws TypeError if results is not an array or contains invalid Result objects
  * @see {@link first} for first success or all errors
  * @see {@link oks} and {@link errs} for all values
  */
@@ -374,6 +476,8 @@ export const findFirst = <T, E>(
   okIndex: number;
   errorIndex: number;
 } => {
+  validateResultArray(results, "findFirst()");
+
   let firstOk: T | undefined;
   let firstError: E | undefined;
   let okIndex = -1;
@@ -428,6 +532,7 @@ export const findFirst = <T, E>(
  * @param reducer - Object with onOk and onErr handler functions
  * @param initialValue - Starting accumulator value
  * @returns Final accumulated value
+ * @throws TypeError if results is not an array or contains invalid Result objects
  * @see {@link partition} for simple separation
  * @see {@link analyze} for statistical reduction
  */
@@ -439,6 +544,8 @@ export const reduce = <T, E, Acc>(
   },
   initialValue: Acc,
 ): Acc => {
+  validateResultArray(results, "reduce()");
+
   let acc = initialValue;
 
   for (let i = 0; i < results.length; i++) {
@@ -471,10 +578,13 @@ export const reduce = <T, E, Acc>(
  *
  * @param results - Array of Results to search
  * @returns First Ok Result or Err containing all error values
+ * @throws TypeError if results is not an array or contains invalid Result objects
  * @see {@link findFirst} for finding first of each type with indices
  * @see {@link all} for converting all to success or first error
  */
 export const first = <T, E>(results: Array<Result<T, E>>): Result<T, E[]> => {
+  validateResultArray(results, "first()");
+
   const errors = [];
 
   for (const result of results) {
