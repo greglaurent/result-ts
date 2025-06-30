@@ -288,7 +288,7 @@ describe("Iteration Operations", () => {
     });
 
     it("should short-circuit on first error", () => {
-      const getUser = (id: number) => err("User not found");
+      const getUser = (_id: number) => err("User not found");
       const getUserEmail = (user: { id: number }) =>
         ok(`${user.id}@example.com`);
 
@@ -429,7 +429,7 @@ describe("Iteration Operations", () => {
         });
       };
 
-      const fetchUserSettings = async (profile: UserProfile): Promise<Result<UserSettings, string>> => {
+      const fetchUserSettings = async (_profile: UserProfile): Promise<Result<UserSettings, string>> => {
         // ✅ FIXED: Use Promise.resolve() instead of setTimeout for deterministic async
         await Promise.resolve();
         return ok({
