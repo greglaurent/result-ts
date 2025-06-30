@@ -38,7 +38,6 @@ npm install result-ts
 ```
 
 For validation features:
-
 ```bash
 npm install result-ts zod
 ```
@@ -102,12 +101,12 @@ result-ts uses a **progressive enhancement** architecture. Start with core essen
 
 | Layer | Functions | Bundle Size | Use Case |
 |-------|-----------|-------------|----------|
-| **Core** (`result-ts`) | 11 essential functions | ~55-332 bytes | Basic Result handling, safe execution |
-| **+ Data Transform** (`result-ts/iter`) | +4 functions | +79 bytes | Value mapping, operation chaining |
-| **+ Array Processing** (`result-ts/batch`) | +10 functions | +133 bytes | Bulk operations, statistics |
+| **Core** (`result-ts`) | 11 essential functions | ~55-331 bytes | Basic Result handling, safe execution |
+| **+ Data Transform** (`result-ts/iter`) | +4 functions | ~778 bytes total | Value mapping, operation chaining |
+| **+ Array Processing** (`result-ts/batch`) | +10 functions | ~935 bytes total | Bulk operations, statistics |
 | **+ Debugging** (`result-ts/utils`) | +5 functions | Similar to core | Side effects, nullable conversion |
-| **+ Advanced Patterns** (`result-ts/patterns`) | +7 functions | +269 bytes | Generators, applicative patterns |
-| **+ Validation** (`result-ts/schema`) | +12 functions | +189 bytes* | Runtime validation with Zod |
+| **+ Advanced Patterns** (`result-ts/patterns`) | +7 functions | ~974 bytes total | Generators, applicative patterns |
+| **+ Validation** (`result-ts/schema`) | +12 functions | ~245 bytes* | Runtime validation with Zod |
 
 *Excludes Zod dependency (~13KB gzipped)
 
@@ -120,11 +119,23 @@ import { ok } from 'result-ts';
 // Basic usage - 107 bytes  
 import { ok, err, isOk } from 'result-ts';
 
-// Safe execution - 332 bytes
+// Safe execution - 331 bytes
 import { ok, err, handle, match } from 'result-ts';
 
-// Full core features - 603 bytes
-import { ok, err, isOk, handle, unwrap, match } from 'result-ts';
+// Data transformation - 778 bytes
+import { ok, err, handle, match } from 'result-ts';
+import { map, andThen } from 'result-ts/iter';
+
+// Array processing - 935 bytes
+import { ok, err, handle, match } from 'result-ts';
+import { map, andThen } from 'result-ts/iter';
+import { all, partition } from 'result-ts/batch';
+
+// Advanced patterns - 974 bytes
+import { ok, err, handle, match } from 'result-ts';
+import { map, andThen } from 'result-ts/iter';
+import { all, partition } from 'result-ts/batch';
+import { safe, zip } from 'result-ts/patterns';
 ```
 
 ## Module Guide
