@@ -3,7 +3,6 @@ import {
   ok,
   err,
   isOk,
-  isErr,
   all,
   allAsync,
   allSettledAsync,
@@ -451,7 +450,7 @@ describe("Batch Operations", () => {
         results,
         {
           onOk: (acc, value) => acc + value,
-          onErr: (acc, error) => acc, // Ignore errors
+          onErr: (acc, _error) => acc,
         },
         0,
       );
@@ -477,7 +476,7 @@ describe("Batch Operations", () => {
         results,
         {
           onOk: (acc) => acc,
-          onErr: (acc, error) => acc + 1,
+          onErr: (acc, _error) => acc + 1,
         },
         0,
       );
