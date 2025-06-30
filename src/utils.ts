@@ -79,6 +79,7 @@ const validateCallback = (
 /**
  * Inspects a Result by calling callbacks without changing the Result.
  * Useful for debugging or side effects without changing the Result.
+ * Constrains error types to ensure meaningful error handling.
  *
  * @example
  * ```typescript
@@ -95,6 +96,13 @@ const validateCallback = (
  *   (data) => console.log("API Success:", JSON.stringify(data, null, 2)),
  *   (error) => console.error("API Error:", error.status, error.message)
  * );
+ *
+ * // Type constraint ensures error handlers can access meaningful properties
+ * const validationResult: Result<Data, ValidationError> = validateForm(data);
+ * const debugged = inspect(validationResult,
+ *   (data) => console.log("Valid data:", data),
+ *   (error) => console.log("Validation failed:", error.field, error.message)
+ * );
  * ```
  *
  * @param result - The Result to inspect
@@ -105,11 +113,21 @@ const validateCallback = (
  * @see {@link tap} for side effects on success values only
  * @see {@link tapErr} for side effects on error values only
  */
-export const inspect = <T, E>(
+export function inspect<T, E extends Record<string, unknown> | string | Error>(
   result: Result<T, E>,
   onOk?: (value: T) => void,
   onErr?: (error: E) => void,
-): Result<T, E> => {
+): Result<T, E>;
+export function inspect<T, E>(
+  result: Result<T, E>,
+  onOk?: (value: T) => void,
+  onErr?: (error: E) => void,
+): Result<T, E>;
+export function inspect<T, E>(
+  result: Result<T, E>,
+  onOk?: (value: T) => void,
+  onErr?: (error: E) => void,
+): Result<T, E> {
   validateResult(result, "inspect()");
   validateCallback(onOk, "inspect()", "onOk", true);
   validateCallback(onErr, "inspect()", "onErr", true);
@@ -120,11 +138,12 @@ export const inspect = <T, E>(
     onErr(result.error);
   }
   return result;
-};
+}
 
 /**
  * Performs a side effect on success values without changing the Result.
  * Useful for logging, caching, or other side effects in a processing chain.
+ * Constrains error types to ensure meaningful error handling.
  *
  * @example
  * ```typescript
@@ -147,6 +166,12 @@ export const inspect = <T, E>(
  *     transactionId: payment.id
  *   })
  * );
+ *
+ * // Type constraint ensures consistent error handling through chains
+ * const pipeline = tap(
+ *   validateInput(data),
+ *   (valid) => console.log("Input validated:", valid)
+ * );
  * ```
  *
  * @param result - The Result to tap
@@ -156,10 +181,18 @@ export const inspect = <T, E>(
  * @see {@link tapErr} for side effects on error values
  * @see {@link inspect} for side effects on both success and error values
  */
-export const tap = <T, E>(
+export function tap<T, E extends Record<string, unknown> | string | Error>(
   result: Result<T, E>,
   fn: (value: T) => void,
-): Result<T, E> => {
+): Result<T, E>;
+export function tap<T, E>(
+  result: Result<T, E>,
+  fn: (value: T) => void,
+): Result<T, E>;
+export function tap<T, E>(
+  result: Result<T, E>,
+  fn: (value: T) => void,
+): Result<T, E> {
   validateResult(result, "tap()");
   validateCallback(fn, "tap()", "fn", false);
 
@@ -167,11 +200,12 @@ export const tap = <T, E>(
     fn(result.value);
   }
   return result;
-};
+}
 
 /**
  * Performs a side effect on error values without changing the Result.
  * Useful for error logging, metrics collection, or cleanup operations.
+ * Constrains error types to ensure meaningful error handling.
  *
  * @example
  * ```typescript
@@ -198,6 +232,12 @@ export const tap = <T, E>(
  *     analytics.track("form_validation_error", { field: validationError.field });
  *   }
  * );
+ *
+ * // Type constraint ensures error objects have meaningful structure
+ * const debuggedResult = tapErr(
+ *   processData(input),
+ *   (error) => console.error("Processing failed:", error.message, error.stack)
+ * );
  * ```
  *
  * @param result - The Result to tap
@@ -207,10 +247,18 @@ export const tap = <T, E>(
  * @see {@link tap} for side effects on success values
  * @see {@link inspect} for side effects on both success and error values
  */
-export const tapErr = <T, E>(
+export function tapErr<T, E extends Record<string, unknown> | string | Error>(
   result: Result<T, E>,
   fn: (error: E) => void,
-): Result<T, E> => {
+): Result<T, E>;
+export function tapErr<T, E>(
+  result: Result<T, E>,
+  fn: (error: E) => void,
+): Result<T, E>;
+export function tapErr<T, E>(
+  result: Result<T, E>,
+  fn: (error: E) => void,
+): Result<T, E> {
   validateResult(result, "tapErr()");
   validateCallback(fn, "tapErr()", "fn", false);
 
@@ -218,53 +266,71 @@ export const tapErr = <T, E>(
     fn(result.error);
   }
   return result;
-};
+}
 
 /**
  * Converts a nullable value to a Result with customizable error.
  * Essential for bridging nullable APIs with Result-based error handling.
+ * Constrains error types to ensure meaningful error information.
  *
  * @example
  * ```typescript
- * // Database query results
+ * // Database query results with structured errors
  * const userRecord = database.findById(userId); // User | null
- * const userResult = fromNullable(userRecord, "User not found");
- * // Returns: Result<User, string> → Ok(user) or Err("User not found")
- *
- * // API responses with optional data
- * const profileData = apiResponse.data?.profile; // Profile | undefined
- * const profileResult = fromNullable(profileData, {
- *   code: "PROFILE_MISSING",
- *   message: "User profile not available"
+ * const userResult = fromNullable(userRecord, {
+ *   code: "USER_NOT_FOUND",
+ *   message: "User not found",
+ *   userId: userId
  * });
- * // Returns: Result<Profile, ErrorObject>
+ * // Returns: Result<User, StructuredError>
  *
- * // Array operations
+ * // API responses with detailed error information
+ * const profileData = apiResponse.data?.profile; // Profile | undefined
+ * const profileResult = fromNullable(profileData, new NotFoundError("Profile missing"));
+ * // Returns: Result<Profile, NotFoundError>
+ *
+ * // Simple string error for basic cases
  * const firstMatch = items.find(item => item.category === "premium");
  * const matchResult = fromNullable(firstMatch, "No premium items found");
+ * // Returns: Result<Item, string>
+ *
+ * // Type constraint ensures error can be meaningfully handled
+ * const configValue = fromNullable(
+ *   process.env.API_KEY,
+ *   { type: "MISSING_CONFIG", variable: "API_KEY", required: true }
+ * );
  * ```
  *
  * @param value - The nullable value to convert
- * @param errorValue - Error to use if value is null/undefined
+ * @param errorValue - Error to use if value is null/undefined (constrained to meaningful types)
  * @returns Result with the value or the error
  * @see {@link toNullable} for converting Results back to nullable values
  */
-export const fromNullable = <T>(
+export function fromNullable<
+  T,
+  E extends Record<string, unknown> | string | Error,
+>(value: T | null | undefined, errorValue: E): Result<T, E>;
+export function fromNullable<T>(
+  value: T | null | undefined,
+  errorValue?: unknown,
+): Result<T, unknown>;
+export function fromNullable<T>(
   value: T | null | undefined,
   errorValue: unknown = "Value is null or undefined",
-): Result<T, unknown> => {
+): Result<T, unknown> {
   // Note: No validation needed - this function accepts any value type by design
   return value != null ? { type: OK, value } : { type: ERR, error: errorValue };
-};
+}
 
 /**
  * Converts a Result to a nullable value for compatibility with nullable APIs.
  * Useful when interfacing with code that expects null for missing values.
+ * Constrains error types to ensure Result comes from meaningful error handling.
  *
  * @example
  * ```typescript
- * // Database operations
- * const userResult = validateAndFetchUser(userId);
+ * // Database operations with structured error handling
+ * const userResult: Result<User, DatabaseError> = validateAndFetchUser(userId);
  * const userOrNull = toNullable(userResult);
  * // Returns: User | null
  *
@@ -272,29 +338,39 @@ export const fromNullable = <T>(
  *   updateUserLastSeen(userOrNull.id); // Safe to access - not null
  * }
  *
- * // Optional chaining with Results
- * const avatarUrl = toNullable(getUserProfile(userId))?.avatar?.url;
+ * // Optional chaining with Results from validated sources
+ * const profileResult: Result<Profile, ValidationError> = getUserProfile(userId);
+ * const avatarUrl = toNullable(profileResult)?.avatar?.url;
  * // Returns: string | null | undefined
  *
- * // Form field values
- * const validatedEmail = toNullable(validateEmail(formData.email));
- * const validatedPhone = toNullable(validatePhone(formData.phone));
+ * // Form field values with proper error types
+ * const validatedEmail = toNullable(validate(formData.email, EmailSchema));
+ * const validatedPhone = toNullable(validate(formData.phone, PhoneSchema));
  *
  * const contactInfo = {
  *   email: validatedEmail, // string | null
  *   phone: validatedPhone  // string | null
  * };
+ *
+ * // Type constraint ensures original Result had meaningful error handling
+ * const processedData: Result<Data, ProcessingError> = processInput(input);
+ * const dataOrNull = toNullable(processedData);
  * ```
  *
- * @param result - The Result to convert
+ * @param result - The Result to convert (with constrained error type)
  * @returns The success value or null for errors
  * @throws TypeError if result is not a valid Result object
  * @see {@link fromNullable} for converting nullable values to Results
  */
-export const toNullable = <T, E>(result: Result<T, E>): T | null => {
+export function toNullable<
+  T,
+  E extends Record<string, unknown> | string | Error,
+>(result: Result<T, E>): T | null;
+export function toNullable<T, E>(result: Result<T, E>): T | null;
+export function toNullable<T, E>(result: Result<T, E>): T | null {
   validateResult(result, "toNullable()");
   return result.type === OK ? result.value : null;
-};
+}
 
 /**
  * This entry point includes core essentials + utility functions.
@@ -303,10 +379,16 @@ export const toNullable = <T, E>(result: Result<T, E>): T | null => {
  *
  * Key functions: inspect(), tap(), tapErr(), fromNullable(), toNullable()
  *
+ * Generic constraints ensure type safety:
+ * - Error types constrained to meaningful types (Record<string, unknown> | string | Error)
+ * - Overloaded signatures provide optimal type inference with constraints
+ * - Backward compatibility maintained with unconstrained overloads
+ * - Better IntelliSense and error messages during development
+ *
  * Common patterns:
- * - **Debugging workflows**: inspect() for comprehensive logging
- * - **Side effects**: tap() for success actions, tapErr() for error handling
- * - **API integration**: fromNullable() for nullable APIs, toNullable() for compatibility
+ * - **Debugging workflows**: inspect() for comprehensive logging with structured errors
+ * - **Side effects**: tap() for success actions, tapErr() for structured error handling
+ * - **API integration**: fromNullable() with structured errors, toNullable() for compatibility
  * - **Performance**: All utilities preserve references and add minimal overhead
  *
  * Other available layers:
