@@ -6,7 +6,7 @@ export * from "@/core";
 
 // Import types and constants for schema implementations
 import { OK, ERR, type Result } from "@/types";
-import type { z } from "zod";
+import { z } from "zod"; // Fixed: Removed 'type' keyword for runtime usage
 
 // =============================================================================
 // RUNTIME VALIDATION HELPERS
@@ -74,42 +74,50 @@ const validateJsonString = (
  *
  * @example
  * ```typescript
- * // User validation with structured error handling
+ * // Basic validation with string errors
  * const UserSchema = z.object({
  *   id: z.number(),
- *   name: z.string(),
+ *   name: z.string().min(1),
  *   email: z.string().email()
  * });
  *
- * const userResult = validate(userData, UserSchema);
- * // Returns: Result<User, string> → Ok(validUser) or Err("Validation failed: ...")
+ * const validUser = validate({
+ *   id: 1,
+ *   name: "John Doe", 
+ *   email: "john@example.com"
+ * }, UserSchema);
+ * // Returns: Result<User, string> → Ok({id: 1, name: "John Doe", email: "john@example.com"})
  *
- * // API request validation with consistent error format
- * const requestResult: Result<ApiRequest, string> = validate(requestBody, ApiRequestSchema);
- * if (isErr(requestResult)) {
- *   return res.status(400).json({ error: requestResult.error });
+ * const invalidUser = validate({
+ *   id: "not-a-number",
+ *   name: "",
+ *   email: "invalid-email"
+ * }, UserSchema);
+ * // Returns: Result<User, string> → Err("Validation failed: Expected number, received string")
+ *
+ * // API request validation
+ * const CreatePostSchema = z.object({
+ *   title: z.string().min(5),
+ *   content: z.string().min(10),
+ *   tags: z.array(z.string()).optional()
+ * });
+ *
+ * const postResult = validate(requestBody, CreatePostSchema);
+ * if (isOk(postResult)) {
+ *   const post = await createPost(postResult.value);
+ *   return res.json(post);
+ * } else {
+ *   return res.status(400).json({ error: postResult.error });
  * }
- *
- * // Type safety: validated data is properly typed
- * const user = requestResult.value; // TypeScript knows this is ApiRequest
  * ```
  *
  * @param data - Data to validate against the schema
  * @param schema - Zod schema to validate against
- * @returns Result containing validated data or validation error string
+ * @returns Result containing validated data or validation error message
  * @throws TypeError if schema is not a valid Zod schema
  * @see {@link validateWith} for custom error mapping
- * @see {@link validateAsync} for async schema validation
- * @see {@link parseJson} for JSON parsing with validation
+ * @see {@link validateAsync} for asynchronous validation
  */
-export function validate<T, E extends string = string>(
-  data: unknown,
-  schema: z.ZodType<T>,
-): Result<T, E>;
-export function validate<T>(
-  data: unknown,
-  schema: z.ZodType<T>,
-): Result<T, string>;
 export function validate<T>(
   data: unknown,
   schema: z.ZodType<T>,
@@ -123,52 +131,55 @@ export function validate<T>(
 }
 
 /**
- * Validates data against an async Zod schema and returns a Promise<Result>.
- * Provides overloaded signatures for optimal type inference when error types are constrained.
+ * Validates data asynchronously against a Zod schema and returns a Result.
+ * Essential for schemas with async refinements or transformations.
  * Includes runtime validation for better developer experience.
  *
  * @example
  * ```typescript
- * // Async email validation with external service
- * const AsyncEmailSchema = z.string().email().refine(async (email) => {
- *   const exists = await checkEmailExists(email);
- *   return !exists;
- * }, "Email already exists");
+ * // Async validation with database checks
+ * const UserRegistrationSchema = z.object({
+ *   username: z.string().min(3).refine(async (username) => {
+ *     const exists = await checkUsernameExists(username);
+ *     return !exists;
+ *   }, "Username already taken"),
+ *   email: z.string().email().refine(async (email) => {
+ *     const domain = await validateEmailDomain(email);
+ *     return domain.isValid;
+ *   }, "Invalid email domain"),
+ *   password: z.string().min(8)
+ * });
  *
- * const emailResult = await validateAsync(email, AsyncEmailSchema);
- * // Returns: Promise<Result<string, string>> → Ok(validEmail) or Err("Email already exists")
+ * const registrationResult = await validateAsync(userData, UserRegistrationSchema);
+ * // Returns: Promise<Result<UserData, string>>
  *
- * // API validation with async database checks
- * const userResult = await validateAsync(userData, UserSchemaWithAsyncValidation);
- * if (isErr(userResult)) {
- *   console.log("Async validation failed:", userResult.error);
+ * if (isOk(registrationResult)) {
+ *   const user = await createUser(registrationResult.value);
+ *   sendWelcomeEmail(user.email);
+ * } else {
+ *   logValidationError("registration_failed", registrationResult.error);
  * }
  *
- * // File upload validation with async virus scanning
+ * // File processing with async validation
  * const FileUploadSchema = z.object({
  *   filename: z.string(),
  *   content: z.string().refine(async (content) => {
- *     return await virusScan(content);
- *   }, "File contains malware")
+ *     const scanResult = await virusScan(content);
+ *     return scanResult.clean;
+ *   }, "File failed security scan"),
+ *   size: z.number().max(10485760) // 10MB
  * });
- * const uploadResult = await validateAsync(uploadData, FileUploadSchema);
+ *
+ * const fileResult = await validateAsync(uploadData, FileUploadSchema);
  * ```
  *
- * @param data - Data to validate against the async schema
- * @param schema - Zod schema with async validation rules
- * @returns Promise of Result containing validated data or validation error string
+ * @param data - Data to validate against the schema
+ * @param schema - Zod schema to validate against
+ * @returns Promise of Result containing validated data or validation error message
  * @throws TypeError if schema is not a valid Zod schema
  * @see {@link validate} for synchronous validation
- * @see {@link validateWithAsync} for custom async error mapping
+ * @see {@link validateWithAsync} for async validation with custom error mapping
  */
-export function validateAsync<T, E extends string = string>(
-  data: unknown,
-  schema: z.ZodType<T>,
-): Promise<Result<T, E>>;
-export function validateAsync<T>(
-  data: unknown,
-  schema: z.ZodType<T>,
-): Promise<Result<T, string>>;
 export async function validateAsync<T>(
   data: unknown,
   schema: z.ZodType<T>,
@@ -182,7 +193,8 @@ export async function validateAsync<T>(
 }
 
 /**
- * Validates data with custom error mapping for structured error handling.
+ * Validates data with custom error mapping.
+ * Combines Zod validation with application-specific error handling.
  * Constrains error types to ensure meaningful custom error structure.
  * Includes runtime validation for better developer experience.
  *
@@ -349,6 +361,136 @@ export async function validateWithAsync<T, E>(
 }
 
 // =============================================================================
+// JSON PARSING OPERATIONS (Individual Exports)
+// =============================================================================
+
+/**
+ * Parses JSON and validates the result with a Zod schema.
+ * Combines JSON parsing with validation in a single Result operation.
+ * Includes runtime validation for better developer experience.
+ *
+ * @example
+ * ```typescript
+ * // API request body parsing
+ * const CreateUserSchema = z.object({
+ *   name: z.string().min(1),
+ *   email: z.string().email(),
+ *   role: z.enum(["admin", "user"])
+ * });
+ *
+ * const userResult = parseJson(requestBody, CreateUserSchema);
+ * // Returns: Result<CreateUserData, string>
+ * // Handles both JSON parsing errors and validation errors
+ *
+ * if (isOk(userResult)) {
+ *   const user = await createUser(userResult.value);
+ *   return res.json(user);
+ * } else {
+ *   return res.status(400).json({ error: userResult.error });
+ * }
+ *
+ * // Configuration file parsing
+ * const ConfigSchema = z.object({
+ *   database: z.object({
+ *     host: z.string(),
+ *     port: z.number(),
+ *     name: z.string()
+ *   }),
+ *   redis: z.object({
+ *     url: z.string().url()
+ *   }),
+ *   features: z.array(z.string()).optional()
+ * });
+ *
+ * const config = parseJson(configFileContent, ConfigSchema);
+ * if (isErr(config)) {
+ *   console.error("Invalid config:", config.error);
+ *   process.exit(1);
+ * }
+ * ```
+ *
+ * @param jsonString - JSON string to parse and validate
+ * @param schema - Zod schema to validate the parsed data against
+ * @returns Result containing validated parsed data or error message
+ * @throws TypeError if jsonString is not a string or schema is not valid
+ * @see {@link parseJsonAsync} for async version with async schemas
+ * @see {@link parseResult} for parsing JSON strings containing Result objects
+ */
+export function parseJson<T>(
+  jsonString: string,
+  schema: z.ZodType<T>,
+): Result<T, string> {
+  validateJsonString(jsonString, "parseJson()");
+  validateSchema(schema, "parseJson()");
+
+  try {
+    const parsed = JSON.parse(jsonString);
+    const validationResult = schema.safeParse(parsed);
+    return validationResult.success
+      ? { type: OK, value: validationResult.data }
+      : { type: ERR, error: `Validation failed: ${validationResult.error.message}` };
+  } catch (error) {
+    return {
+      type: ERR,
+      error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+/**
+ * Parses JSON asynchronously and validates with a Zod schema.
+ * Essential for schemas with async refinements.
+ * Includes runtime validation for better developer experience.
+ *
+ * @example
+ * ```typescript
+ * // Webhook payload validation with async checks
+ * const WebhookSchema = z.object({
+ *   event: z.string(),
+ *   timestamp: z.number(),
+ *   signature: z.string().refine(async (sig) => {
+ *     return await verifyWebhookSignature(sig);
+ *   }, "Invalid webhook signature"),
+ *   data: z.any()
+ * });
+ *
+ * const webhookResult = await parseJsonAsync(payloadString, WebhookSchema);
+ * if (isOk(webhookResult)) {
+ *   await processWebhookEvent(webhookResult.value);
+ * } else {
+ *   logWebhookError("invalid_payload", webhookResult.error);
+ * }
+ * ```
+ *
+ * @param jsonString - JSON string to parse and validate
+ * @param schema - Zod schema to validate the parsed data against
+ * @returns Promise of Result containing validated parsed data or error message
+ * @throws TypeError if jsonString is not a string or schema is not valid
+ * @see {@link parseJson} for synchronous version
+ * @see {@link parseResultAsync} for parsing JSON strings containing Result objects
+ */
+export async function parseJsonAsync<T>(
+  jsonString: string,
+  schema: z.ZodType<T>,
+): Promise<Result<T, string>> {
+  validateJsonString(jsonString, "parseJsonAsync()");
+  validateSchema(schema, "parseJsonAsync()");
+
+  try {
+    const parsed = JSON.parse(jsonString);
+    const validationResult = await schema.safeParseAsync(parsed);
+    return validationResult.success
+      ? { type: OK, value: validationResult.data }
+      : { type: ERR, error: `Validation failed: ${validationResult.error.message}` };
+  } catch (error) {
+    return {
+      type: ERR,
+      error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+// =============================================================================
 // SCHEMA BUILDERS (Individual Exports)
 // =============================================================================
 
@@ -483,23 +625,23 @@ export const numberErrorSchema = <T>(valueSchema: z.ZodType<T>) => {
  * );
  * // Validates: Result<User, { message: string, code?: number }>
  *
- * const errorResponse = {
+ * const response = {
  *   type: "Err",
- *   error: { message: "Invalid email format", code: 400 }
+ *   error: { message: "User validation failed", code: 400 }
  * };
- * const validated = UserResultSchema.parse(errorResponse);
+ * const validated = UserResultSchema.parse(response);
  *
- * // Database operation results with detailed error info
- * const DatabaseResultSchema = structuredErrorSchema(
- *   z.array(z.object({ id: z.number(), data: z.string() }))
+ * // Microservice communication with detailed error context
+ * const ServiceCallSchema = structuredErrorSchema(
+ *   z.object({ data: z.any(), requestId: z.string() })
  * );
- * // Validates: Result<DatabaseRow[], { message: string, code?: number }>
  * ```
  *
  * @param valueSchema - Schema for the success value type
- * @returns Zod schema that validates Result<T, StructuredError> objects
+ * @returns Zod schema that validates Result<T, {message: string, code?: number}> objects
  * @throws TypeError if valueSchema is not a valid Zod schema
- * @see {@link resultSchema} for fully custom error schemas
+ * @see {@link resultSchema} for custom error types
+ * @see {@link stringErrorSchema} for simple string errors
  */
 export const structuredErrorSchema = <T>(valueSchema: z.ZodType<T>) => {
   validateSchema(valueSchema, "structuredErrorSchema()");
@@ -513,211 +655,57 @@ export const structuredErrorSchema = <T>(valueSchema: z.ZodType<T>) => {
 };
 
 // =============================================================================
-// JSON PARSING (Individual Exports)
+// RESULT PARSING OPERATIONS (Individual Exports)
 // =============================================================================
 
 /**
- * Parses JSON string and validates against schema, returning a Result.
- * Essential for safe API response processing and configuration file parsing.
+ * Parses a JSON string containing a Result object and validates both structure and data.
+ * Useful for deserializing Result objects from APIs or storage.
  * Includes runtime validation for better developer experience.
  *
  * @example
  * ```typescript
- * // API response processing with structured validation
- * const UserSchema = z.object({
- *   id: z.number(),
- *   name: z.string(),
- *   email: z.string().email(),
- *   roles: z.array(z.string())
- * });
- * const apiResponse = '{"id": 1, "name": "John", "email": "john@example.com", "roles": ["user"]}';
- * const userResult = parseJson(apiResponse, UserSchema);
- * // Returns: Result<User, string> → Ok(user) or Err("Invalid JSON: ..." | "Validation failed: ...")
+ * // Deserialize API responses containing Result objects
+ * const userResultJson = '{"type": "Ok", "value": {"id": 1, "name": "John"}}';
+ * const UserSchema = z.object({ id: z.number(), name: z.string() });
+ * 
+ * const result = parseResult(userResultJson, UserSchema, z.string());
+ * // Returns: Result<Result<User, string>, string>
  *
- * // Configuration file parsing with defaults
- * const ConfigSchema = z.object({
- *   apiUrl: z.string().url(),
- *   timeout: z.number().positive().default(5000),
- *   retries: z.number().min(0).max(5).default(3),
- *   features: z.object({
- *     enableCache: z.boolean().default(true),
- *     debugMode: z.boolean().default(false)
- *   })
- * });
- * const configResult = parseJson(configFileContent, ConfigSchema);
- *
- * // Webhook payload validation with comprehensive error handling
- * const WebhookPayloadSchema = z.object({
- *   event: z.enum(["user.created", "user.updated", "user.deleted"]),
- *   data: z.object({
- *     userId: z.string().uuid(),
- *     timestamp: z.string().datetime()
- *   }),
- *   signature: z.string()
- * });
- * const webhookResult = parseJson(requestBody, WebhookPayloadSchema);
- * if (isOk(webhookResult)) {
- *   await processWebhook(webhookResult.value);
- * } else {
- *   logWebhookError(webhookResult.error);
- * }
- * ```
- *
- * @param jsonString - The JSON string to parse
- * @param schema - The Zod schema to validate the parsed data against
- * @returns Result containing validated parsed data or error message
- * @throws TypeError if jsonString is not a string or schema is not valid
- * @see {@link parseJsonAsync} for async validation with refinements
- * @see {@link validate} for validating already-parsed data
- * @see {@link parseResult} for parsing JSON containing Result objects
- */
-export const parseJson = <T>(
-  jsonString: string,
-  schema: z.ZodType<T>,
-): Result<T, string> => {
-  validateJsonString(jsonString, "parseJson()");
-  validateSchema(schema, "parseJson()");
-
-  try {
-    const parsed = JSON.parse(jsonString);
-    return validate(parsed, schema);
-  } catch (error) {
-    return {
-      type: ERR,
-      error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
-    };
-  }
-};
-
-/**
- * Parses JSON string and validates against schema asynchronously.
- * Required when schemas include async refinements or external validation.
- * Includes runtime validation for better developer experience.
- *
- * @example
- * ```typescript
- * // User registration with async email validation
- * const RegistrationSchema = z.object({
- *   email: z.string().email().refine(async (email) => {
- *     const exists = await checkEmailInDatabase(email);
- *     return !exists;
- *   }, "Email already registered"),
- *   username: z.string().min(3).refine(async (username) => {
- *     return await isUsernameAvailable(username);
- *   }, "Username already taken"),
- *   password: z.string().min(8)
- * });
- *
- * const registrationData = '{"email": "user@example.com", "username": "newuser", "password": "securepass123"}';
- * const result = await parseJsonAsync(registrationData, RegistrationSchema);
- * // Returns: Promise<Result<RegistrationData, string>>
- *
- * // File upload with async virus scanning validation
- * const FileUploadSchema = z.object({
- *   filename: z.string(),
- *   mimeType: z.string(),
- *   content: z.string().refine(async (content) => {
- *     const scanResult = await virusScanService.scan(content);
- *     return scanResult.clean;
- *   }, "File contains malicious content"),
- *   metadata: z.object({
- *     size: z.number().positive(),
- *     checksum: z.string()
- *   })
- * });
- * const uploadResult = await parseJsonAsync(uploadMetadata, FileUploadSchema);
- *
- * // External API validation with rate limiting
- * const ExternalApiSchema = z.object({
- *   apiKey: z.string().refine(async (key) => {
- *     return await validateApiKeyWithProvider(key);
- *   }, "Invalid API key"),
- *   endpoint: z.string().url()
- * });
- * ```
- *
- * @param jsonString - The JSON string to parse
- * @param schema - The Zod schema to validate the parsed data against
- * @returns Promise of Result containing validated parsed data or error message
- * @throws TypeError if jsonString is not a string or schema is not valid
- * @see {@link parseJson} for synchronous parsing and validation
- * @see {@link validateAsync} for validating already-parsed data asynchronously
- */
-export const parseJsonAsync = async <T>(
-  jsonString: string,
-  schema: z.ZodType<T>,
-): Promise<Result<T, string>> => {
-  validateJsonString(jsonString, "parseJsonAsync()");
-  validateSchema(schema, "parseJsonAsync()");
-
-  try {
-    const parsed = JSON.parse(jsonString);
-    return await validateAsync(parsed, schema);
-  } catch (error) {
-    return {
-      type: ERR,
-      error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
-    };
-  }
-};
-
-/**
- * Parses a JSON string containing a Result object and validates both structure and content.
- * Essential for deserializing Result objects from APIs or storage.
- * Includes comprehensive runtime validation for better developer experience.
- *
- * @example
- * ```typescript
- * // API endpoint that returns Result objects with structured errors
- * const apiResponseJson = '{"type": "Ok", "value": {"id": 1, "name": "John", "email": "john@example.com"}}';
- * const userResult = parseResult(
- *   apiResponseJson,
- *   z.object({ id: z.number(), name: z.string(), email: z.string() }),
- *   z.object({ code: z.string(), message: z.string(), timestamp: z.number() })
- * );
- * // Returns: Result<Result<User, ApiError>, string>
- *
- * // Cache deserialization with error recovery
- * const cachedResult = parseResult(
- *   cacheData,
- *   UserSchema,
- *   z.string()
- * );
- * if (isOk(cachedResult) && isOk(cachedResult.value)) {
- *   const user = cachedResult.value.value; // Validated user data
- * } else if (isOk(cachedResult) && isErr(cachedResult.value)) {
- *   console.log("Cached error:", cachedResult.value.error);
+ * if (isOk(result)) {
+ *   const innerResult = result.value; // This is the parsed Result<User, string>
+ *   if (isOk(innerResult)) {
+ *     console.log("User:", innerResult.value);
+ *   }
  * }
  *
- * // Database operation result deserialization
- * const dbOperationJson = '{"type": "Err", "error": {"sqlState": "23505", "message": "Duplicate key", "table": "users"}}';
- * const dbResult = parseResult(
- *   dbOperationJson,
- *   z.array(z.object({ id: z.number(), name: z.string() })),
- *   z.object({ sqlState: z.string(), message: z.string(), table: z.string() })
- * );
+ * // Deserialize stored computation results
+ * const ComputationSchema = z.object({
+ *   result: z.number(),
+ *   duration: z.number(),
+ *   timestamp: z.number()
+ * });
+ * const ErrorSchema = z.object({
+ *   code: z.string(),
+ *   message: z.string()
+ * });
  *
- * // Microservice communication with Result serialization
- * const ServiceResponseSchema = resultSchema(
- *   z.object({ data: z.any(), processedAt: z.string() }),
- *   z.object({ service: z.string(), errorCode: z.string(), details: z.string() })
- * );
+ * const stored = parseResult(storedJson, ComputationSchema, ErrorSchema);
  * ```
  *
  * @param jsonString - JSON string containing a Result object
  * @param valueSchema - Schema for the success value type
  * @param errorSchema - Schema for the error type
  * @returns Result containing validated Result object or error message
- * @throws TypeError if parameters are not valid
- * @see {@link parseResultAsync} for async validation of Result objects
- * @see {@link resultSchema} for creating schemas that validate Result structure
- * @see {@link parseJson} for parsing JSON without Result structure
+ * @throws TypeError if parameters are invalid
+ * @see {@link parseResultAsync} for async version
+ * @see {@link parseJson} for parsing regular JSON with validation
  */
-export const parseResult = <T, E>(
+export function parseResult<T, E>(
   jsonString: string,
   valueSchema: z.ZodType<T>,
   errorSchema: z.ZodType<E>,
-): Result<Result<T, E>, string> => {
+): Result<Result<T, E>, string> {
   validateJsonString(jsonString, "parseResult()");
   validateSchema(valueSchema, "parseResult()");
   validateSchema(errorSchema, "parseResult()");
@@ -771,79 +759,43 @@ export const parseResult = <T, E>(
       error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
     };
   }
-};
+}
 
 /**
- * Parses a JSON string containing a Result object and validates asynchronously.
- * Required when Result content schemas include async refinements.
- * Includes comprehensive runtime validation for better developer experience.
+ * Parses a JSON string containing a Result object with async validation.
+ * Useful for deserializing Result objects with schemas that have async refinements.
+ * Includes runtime validation for better developer experience.
  *
  * @example
  * ```typescript
- * // Deserialize Result with async validation for stored user data
- * const AsyncUserSchema = z.object({
+ * // Deserialize API responses with async validation
+ * const UserSchema = z.object({
+ *   id: z.number(),
  *   email: z.string().email().refine(async (email) => {
- *     // Validate email still exists in external system
- *     return await verifyEmailWithProvider(email);
- *   }, "Email no longer valid"),
- *   permissions: z.array(z.string()).refine(async (permissions) => {
- *     // Validate permissions against current RBAC system
- *     return await validatePermissions(permissions);
- *   }, "Permissions outdated")
+ *     return await validateEmailDomain(email);
+ *   }, "Invalid email domain")
  * });
  *
- * const asyncResult = await parseResultAsync(
- *   storedResultJson,
- *   AsyncUserSchema,
- *   z.object({ code: z.string(), message: z.string() })
+ * const result = await parseResultAsync(
+ *   storedUserResultJson,
+ *   UserSchema,
+ *   z.string()
  * );
- * // Returns: Promise<Result<Result<User, ErrorObject>, string>>
- *
- * // Complex validation scenarios with external service checks
- * const FileMetadataSchema = z.object({
- *   filename: z.string(),
- *   hash: z.string().refine(async (hash) => {
- *     // Verify file integrity with external service
- *     return await verifyFileIntegrity(hash);
- *   }, "File integrity check failed"),
- *   permissions: z.object({
- *     owner: z.string().refine(async (owner) => {
- *       return await userExists(owner);
- *     }, "Owner no longer exists")
- *   })
- * });
- *
- * const validatedResult = await parseResultAsync(
- *   storedFileResultJson,
- *   FileMetadataSchema,
- *   z.object({ operation: z.string(), reason: z.string(), timestamp: z.number() })
- * );
- *
- * // Microservice result deserialization with async business rule validation
- * const BusinessRuleSchema = z.object({
- *   customerId: z.string().refine(async (id) => {
- *     return await customerService.isActive(id);
- *   }, "Customer account inactive"),
- *   amount: z.number().refine(async (amount) => {
- *     return await fraudService.validateAmount(amount);
- *   }, "Amount flagged for fraud review")
- * });
  * ```
  *
  * @param jsonString - JSON string containing a Result object
  * @param valueSchema - Schema for the success value type
  * @param errorSchema - Schema for the error type
  * @returns Promise of Result containing validated Result object or error message
- * @throws TypeError if parameters are not valid
- * @see {@link parseResult} for synchronous validation of Result objects
- * @see {@link parseJsonAsync} for async JSON parsing without Result structure
- * @see {@link resultSchema} for creating schemas that validate Result structure
+ * @throws TypeError if parameters are invalid
+ * @see {@link parseResult} for synchronous version
+ * @see {@link parseJsonAsync} for parsing regular JSON with async validation
  */
-export const parseResultAsync = async <T, E>(
+export async function parseResultAsync<T, E>(
   jsonString: string,
   valueSchema: z.ZodType<T>,
   errorSchema: z.ZodType<E>,
-): Promise<Result<Result<T, E>, string>> => {
+): Promise<Result<Result<T, E>, string>> {
   validateJsonString(jsonString, "parseResultAsync()");
   validateSchema(valueSchema, "parseResultAsync()");
   validateSchema(errorSchema, "parseResultAsync()");
@@ -897,7 +849,7 @@ export const parseResultAsync = async <T, E>(
       error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
     };
   }
-};
+}
 
 /**
  * This entry point includes core essentials + Zod validation integration.
