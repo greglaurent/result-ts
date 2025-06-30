@@ -1,8 +1,5 @@
 // Internal core module - not exposed to users
-// Contains the minimal essentials that every layer includes
-// All layer files re-export from this for consistency
 
-// Import types and constants from the shared foundation
 import { OK, ERR, type Result, type Ok, type Err } from "./types";
 
 // =============================================================================
@@ -129,11 +126,9 @@ export function unwrap<T, E>(result: Result<T, E>): T {
   if (!result || typeof result !== "object") {
     throw new TypeError("Argument must be a Result object");
   }
+
   const resultObj = result as any;
-  if (
-    !("type" in resultObj) ||
-    (resultObj.type !== OK && resultObj.type !== ERR)
-  ) {
+  if (!("type" in resultObj) || (resultObj.type !== OK && resultObj.type !== ERR)) {
     throw new TypeError(
       `Invalid Result: expected object with type '${OK}' or '${ERR}'`,
     );
