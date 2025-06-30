@@ -1,8 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
 import {
-  ok,
-  err,
   isOk,
   isErr,
   validate,
