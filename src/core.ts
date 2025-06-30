@@ -96,6 +96,7 @@ export const isErr = <T, E>(result: Result<T, E>): result is Err<E> =>
  * Extracts the value from a successful Result or throws an error.
  * Preserves the original error type when possible, with proper cause chaining.
  * Includes runtime validation for better developer experience.
+ * Provides overloaded signatures for optimal type inference when error types are constrained.
  *
  * @example
  * ```typescript
@@ -107,16 +108,24 @@ export const isErr = <T, E>(result: Result<T, E>): result is Err<E> =>
  *
  * const customFailure = err({ code: 404, message: "Not found" });
  * unwrap(customFailure); // Throws Error with original in .cause
+ *
+ * // Error type constraint ensures meaningful error handling
+ * const apiResult: Result<Data, ApiError> = callAPI();
+ * const data = unwrap(apiResult); // Throws ApiError with proper structure
  * ```
  *
- * @param result - The Result to unwrap
+ * @param result - The Result to unwrap (with constrained error type for better error handling)
  * @returns The success value
  * @throws The original error if Result is Err, or wrapped error with cause
  * @throws TypeError if argument is not a valid Result object
  * @see {@link unwrapOr} for safe unwrapping with defaults
  * @see {@link match} for non-throwing Result handling
  */
-export const unwrap = <T, E>(result: Result<T, E>): T => {
+export function unwrap<T, E extends Record<string, unknown> | string | Error>(
+  result: Result<T, E>,
+): T;
+export function unwrap<T, E>(result: Result<T, E>): T;
+export function unwrap<T, E>(result: Result<T, E>): T {
   if (!result || typeof result !== "object") {
     throw new TypeError("Argument must be a Result object");
   }
@@ -146,11 +155,12 @@ export const unwrap = <T, E>(result: Result<T, E>): T => {
 
   // Handle all other error types - preserve original in cause
   throw new Error(`Unwrap failed: ${String(error)}`, { cause: error });
-};
+}
 
 /**
  * Extracts the value from a Result or returns a default value.
  * Includes runtime validation for better developer experience.
+ * Provides overloaded signatures for optimal type inference when error types are constrained.
  *
  * @example
  * ```typescript
@@ -160,16 +170,25 @@ export const unwrap = <T, E>(result: Result<T, E>): T => {
  * const failure = err("failed");
  * console.log(unwrapOr(failure, 0)); // 0
  * // Returns: T (the success value or default)
+ *
+ * // Error type constraint ensures meaningful error handling
+ * const apiResult: Result<Data, ApiError> = callAPI();
+ * const data = unwrapOr(apiResult, defaultData); // Safe fallback with structured errors
  * ```
  *
- * @param result - The Result to unwrap
+ * @param result - The Result to unwrap (with constrained error type for better error handling)
  * @param defaultValue - The value to return if Result is Err
  * @returns The success value or the default value
  * @throws TypeError if first argument is not a valid Result object
  * @see {@link unwrap} for throwing unwrap behavior
  * @see {@link match} for custom handling of both cases
  */
-export const unwrapOr = <T, E>(result: Result<T, E>, defaultValue: T): T => {
+export function unwrapOr<T, E extends Record<string, unknown> | string | Error>(
+  result: Result<T, E>,
+  defaultValue: T,
+): T;
+export function unwrapOr<T, E>(result: Result<T, E>, defaultValue: T): T;
+export function unwrapOr<T, E>(result: Result<T, E>, defaultValue: T): T {
   if (!result || typeof result !== "object") {
     throw new TypeError("First argument must be a Result object");
   }
@@ -183,7 +202,7 @@ export const unwrapOr = <T, E>(result: Result<T, E>, defaultValue: T): T => {
     );
   }
   return result.type === OK ? result.value : defaultValue;
-};
+}
 
 /**
  * Safely executes a function, catching any thrown errors and converting them to a Result.
@@ -393,6 +412,7 @@ export const handleWithAsync = async <
  * Pattern matching for Results. Executes the appropriate handler based on Result type.
  * Overloaded for optimal type inference when both handlers return the same type.
  * Includes runtime validation for better developer experience.
+ * Provides overloaded signatures for optimal type inference when error types are constrained.
  *
  * @example
  * ```typescript
@@ -407,15 +427,41 @@ export const handleWithAsync = async <
  *   Err: () => 0
  * });
  * // Returns: number
+ *
+ * // Error type constraint ensures structured error handling
+ * const apiMessage = match(apiResult, {
+ *   Ok: (data) => `Loaded ${data.users.length} users`,
+ *   Err: (error) => `API Error ${error.status}: ${error.message}`
+ * });
+ * // Type safety: error parameter has .status, .message properties
  * ```
  *
- * @param result - The Result to match against
+ * @param result - The Result to match against (with constrained error type for better error handling)
  * @param handlers - Object with Ok and Err handler functions
  * @returns The result of the appropriate handler
  * @throws TypeError if arguments are invalid
  * @see {@link isOk} and {@link isErr} for simple boolean checks
  * @see {@link unwrap} and {@link unwrapOr} for value extraction
  */
+export function match<T, E extends Record<string, unknown> | string | Error, R>(
+  result: Result<T, E>,
+  handlers: {
+    Ok: (value: T) => R;
+    Err: (error: E) => R;
+  },
+): R;
+export function match<
+  T,
+  U,
+  V,
+  E extends Record<string, unknown> | string | Error,
+>(
+  result: Result<T, E>,
+  handlers: {
+    Ok: (value: T) => U;
+    Err: (error: E) => V;
+  },
+): U | V;
 export function match<T, E, R>(
   result: Result<T, E>,
   handlers: {
@@ -483,4 +529,10 @@ export type { Result, Ok, Err } from "./types";
  * - Enhanced type safety with generic constraints and runtime validation
  * - Overloaded functions for optimal type inference
  * - Better developer experience with descriptive error messages
+ *
+ * Generic constraints ensure type safety:
+ * - Error types constrained to meaningful types (Record<string, unknown> | string | Error)
+ * - Overloaded signatures provide optimal type inference with constraints
+ * - Backward compatibility maintained with unconstrained overloads
+ * - Better IntelliSense and error messages during development
  */
