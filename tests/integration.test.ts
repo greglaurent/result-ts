@@ -3,7 +3,7 @@ import { ok, err, handle, isOk, isErr, unwrap, match } from "../src";
 import { map, andThen, mapErr } from "../src/iter";
 import { all, allAsync, partition, analyze, findFirst } from "../src/batch";
 import { inspect, tap, tapErr, toNullable } from "../src/utils";
-import { validate, parseJson, safeParse } from "../src/schema";
+import { validate, parseJson } from "../src/schema";
 import { safe, safeAsync, zip, zipWith, chain } from "../src/patterns";
 import { z } from "zod";
 
@@ -160,8 +160,8 @@ describe("Integration Tests", () => {
       // Test: Chain with cross-module operations
       const apiResult = mockApiCall();
       const result = chain(apiResult)
-        .then(user => map(ok(user), u => u.name))
-        .then(nameResult => andThen(nameResult, name => ok(name.toUpperCase())))
+        .then(user => ok(user.name))
+        .then(name => ok(name.toUpperCase()))
         .run();
 
       expect(isOk(result)).toBe(true);
@@ -175,7 +175,7 @@ describe("Integration Tests", () => {
     it("should handle complete data processing pipeline", () => {
       // Test: Core -> Schema -> Iter -> Batch -> Utils pipeline
       const processUserData = (jsonData: string): Result<User[], ValidationError> => {
-        const parseResult = parseJson(jsonData);
+        const parseResult = parseJson(jsonData, UserSchema);
 
         if (isErr(parseResult)) {
           return err({
@@ -192,9 +192,9 @@ describe("Integration Tests", () => {
 
         const validations = data.map((item, index) => {
           const validation = validate(item, UserSchema);
-          return mapErr(validation, (zodError) => ({
+          return mapErr(validation, (errorMessage) => ({
             field: `users[${index}]`,
-            message: zodError.message,
+            message: errorMessage,
             code: "VALIDATION_ERROR"
           }));
         });
@@ -220,24 +220,25 @@ describe("Integration Tests", () => {
     it("should handle error propagation through complex chains", () => {
       // Test: Error types maintained through complex operations
       const processWithErrors = (jsonData: string): Result<User[], string> => {
-        const parseResult = parseJson(jsonData);
+        const parseResult: Result<unknown, Error> = handle(() => JSON.parse(jsonData));
 
         if (isErr(parseResult)) {
-          return tapErr(parseResult, error => console.log("Parse error:", error));
+          const stringError: Result<unknown, string> = mapErr(parseResult, (error: Error) => error.message);
+          tapErr(stringError, (error: string) => console.log("Parse error:", error));
+          return stringError as Result<User[], string>;
         }
 
-        const data = parseResult.value;
+        const data: unknown = parseResult.value;
         if (!Array.isArray(data)) {
-          const errorResult: Result<never, string> = err("Not an array");
-          return errorResult;
+          return err("Not an array");
         }
 
-        const validations = data.map(item => validate(item, UserSchema));
-        const allResult = all(validations);
+        const validations: Result<User, string>[] = data.map((item: unknown) => validate(item, UserSchema));
+        const allResult: Result<User[], string> = all(validations);
 
         return inspect(allResult,
-          success => `Validated ${success.length} users`,
-          error => `Validation failed: ${error.message || 'Unknown error'}`
+          (success: User[]) => `Validated ${success.length} users`,
+          (error: string) => `Validation failed: ${error}`
         );
       };
 
@@ -251,17 +252,17 @@ describe("Integration Tests", () => {
 
     it("should work with async operations across modules", async () => {
       // Test: Async operations work across module boundaries
-      const fetchAndProcess = async (userId: number) => {
+      const fetchAndProcess = async (userId: number): Promise<Result<{ user: User, processedName: string, related: string }, ApiError>> => {
         return safeAsync(async function* () {
           // Simulate API call
-          const apiResponse = yield await Promise.resolve(mockApiCall(userId > 100));
+          const apiResponse: User = yield await Promise.resolve(mockApiCall(userId > 100));
 
           // Transform data
-          const userName = map(ok(apiResponse), user => user.name.toUpperCase());
-          const userValue = yield userName;
+          const userName: Result<string, never> = map(ok(apiResponse), (user: User) => user.name.toUpperCase());
+          const userValue: string = yield userName;
 
           // Batch operation
-          const related = yield await allAsync([
+          const related: [string, string] = yield await allAsync([
             Promise.resolve(ok(userValue)),
             Promise.resolve(ok("RELATED_DATA"))
           ]);
@@ -294,20 +295,20 @@ describe("Integration Tests", () => {
   describe("Pattern Integration", () => {
     it("should work with generator patterns and other modules", () => {
       // Test: safe() pattern with cross-module operations
-      const processMultipleUsers = (userIds: number[]) => {
+      const processMultipleUsers = (userIds: number[]): Result<string[], ApiError> => {
         return safe(function* () {
           // Use batch operations within generator
-          const apiCalls = userIds.map(id => mockApiCall(id > 100));
-          const allUsers = yield all(apiCalls);
+          const apiCalls: Result<User, ApiError>[] = userIds.map((id: number) => mockApiCall(id > 100));
+          const allUsers: User[] = yield all(apiCalls);
 
           // Use iter operations
-          const names = allUsers.map(user => user.name);
-          const processed = yield all(names.map(name => ok(name.toUpperCase())));
+          const names: string[] = allUsers.map((user: User) => user.name);
+          const processed: string[] = yield all(names.map((name: string) => ok(name.toUpperCase())));
 
           // Use utils for debugging
-          const inspected = inspect(ok(processed),
-            names => `Processed ${names.length} names`,
-            error => `Failed: ${error}`
+          const inspected: Result<string[], never> = inspect(ok(processed),
+            (names: string[]) => `Processed ${names.length} names`,
+            (error: never) => `Failed: ${error}`
           );
 
           return yield inspected;
@@ -361,7 +362,7 @@ describe("Integration Tests", () => {
       const result = chain(mockApiCall())
         .then(user => ok(user.email))
         .then(email => validate(email, z.string().email()))
-        .then(validEmail => map(ok(validEmail), e => e.split("@")[0]))
+        .then(validEmail => ok(validEmail.split("@")[0]))
         .run();
 
       expect(isOk(result)).toBe(true);
@@ -375,11 +376,11 @@ describe("Integration Tests", () => {
     it("should integrate validation with batch operations", () => {
       // Test: Schema validation with batch processing
       const validateUsers = (userData: unknown[]) => {
-        const validations = userData.map(data => validate(data, UserSchema));
-        const allValid = all(validations);
+        const validations: Result<User, string>[] = userData.map((data: unknown) => validate(data, UserSchema));
+        const allValid: Result<User[], string> = all(validations);
 
-        return andThen(allValid, users => {
-          const analyzed = analyze(users.map(u => ok(u.email)));
+        return andThen(allValid, (users: User[]) => {
+          const analyzed = analyze(users.map((u: User) => ok(u.email)));
           return ok({
             users,
             emailCount: analyzed.successCount,
@@ -388,7 +389,7 @@ describe("Integration Tests", () => {
         });
       };
 
-      const validData = [
+      const validData: unknown[] = [
         { id: 1, name: "Alice", email: "alice@example.com" },
         { id: 2, name: "Bob", email: "bob@example.com" }
       ];
@@ -403,12 +404,12 @@ describe("Integration Tests", () => {
 
     it("should handle validation errors with error analysis", () => {
       // Test: Schema errors with batch error handling
-      const invalidData = [
+      const invalidData: unknown[] = [
         { id: "invalid", name: "", email: "not-email" },
         { id: 2, name: "Bob", email: "bob@example.com" }
       ];
 
-      const validations = invalidData.map(data => validate(data, UserSchema));
+      const validations: Result<User, string>[] = invalidData.map((data: unknown) => validate(data, UserSchema));
       const results = partition(validations);
 
       expect(results.successes).toHaveLength(1);
@@ -419,7 +420,7 @@ describe("Integration Tests", () => {
     it("should work with parseJson and complex validation", () => {
       // Test: JSON parsing with nested validation
       const processApiResponse = (jsonStr: string) => {
-        return chain(parseJson(jsonStr))
+        return chain(parseJson(jsonStr, UserSchema))
           .then(data => validate(data, ApiResponseSchema))
           .then(response => ok({
             user: response.data,
@@ -507,10 +508,10 @@ describe("Integration Tests", () => {
 
     it("should work with nullable conversion in complex chains", () => {
       // Test: toNullable with cross-module operations
-      const processToNullable = (userIds: number[]) => {
-        const results = userIds.map(id => mockApiCall(id > 100));
-        const combined = all(results);
-        const names = map(combined, users => users.map(u => u.name));
+      const processToNullable = (userIds: number[]): string[] | null => {
+        const results: Result<User, ApiError>[] = userIds.map((id: number) => mockApiCall(id > 100));
+        const combined: Result<User[], ApiError> = all(results);
+        const names: Result<string[], ApiError> = map(combined, (users: User[]) => users.map((u: User) => u.name));
 
         return toNullable(names);
       };
@@ -526,14 +527,14 @@ describe("Integration Tests", () => {
   describe("Real-World Scenarios", () => {
     it("should handle complete user onboarding workflow", async () => {
       // Test: Complete workflow combining all modules
-      const onboardUser = async (userData: unknown, sendEmail = true) => {
+      const onboardUser = async (userData: unknown, sendEmail = true): Promise<Result<{ user: User, profile: UserProfile, emailStatus: string, onboardedAt: string }, DbError>> => {
         return safeAsync(async function* () {
           // 1. Validate input data
-          const user = yield validate(userData, UserSchema);
+          const user: User = yield validate(userData, UserSchema);
 
           // 2. Check if user already exists (simulate async DB call)
-          const existingUsers = yield await Promise.resolve(mockDbQuery());
-          const duplicate = findFirst(existingUsers.map(u =>
+          const existingUsers: User[] = yield await Promise.resolve(mockDbQuery());
+          const duplicate: Result<User, string> = findFirst(existingUsers.map((u: User) =>
             u.email === user.email ? ok(u) : err("no match")
           ));
 
@@ -547,14 +548,14 @@ describe("Integration Tests", () => {
           }
 
           // 3. Create user profile
-          const profileData = {
+          const profileData: UserProfile = {
             bio: user.profile?.bio || "New user",
             avatar: user.profile?.avatar || "https://example.com/default.jpg",
             preferences: user.profile?.preferences || {}
           };
 
           // 4. Batch operations for user creation
-          const operations = yield await allAsync([
+          const operations: [User, UserProfile, string] = yield await allAsync([
             Promise.resolve(ok({ ...user, id: Date.now() })),
             Promise.resolve(ok(profileData)),
             sendEmail ? Promise.resolve(ok("email-sent")) : Promise.resolve(ok("email-skipped"))
@@ -570,15 +571,17 @@ describe("Integration Tests", () => {
             onboardedAt: new Date().toISOString()
           };
 
-          return inspect(ok(result),
-            result => `User ${result.user.name} onboarded successfully`,
-            error => `Onboarding failed: ${error}`
-          ).value;
+          inspect(ok(result),
+            (result: { user: User, profile: UserProfile, emailStatus: string, onboardedAt: string }) => `User ${result.user.name} onboarded successfully`,
+            (error: never) => `Onboarding failed: ${error}`
+          );
+
+          return result;
         });
       };
 
       // Test successful onboarding
-      const newUser = {
+      const newUser: unknown = {
         id: 999,
         name: "Charlie",
         email: "charlie@example.com",
@@ -598,7 +601,7 @@ describe("Integration Tests", () => {
       }
 
       // Test duplicate user
-      const duplicateUser = {
+      const duplicateUser: unknown = {
         id: 1000,
         name: "Alice Duplicate",
         email: "alice@example.com" // This email exists in mock data
@@ -616,7 +619,7 @@ describe("Integration Tests", () => {
       const migrateUserData = (oldData: unknown[], newSchema: z.ZodSchema) => {
         return safe(function* () {
           // 1. Parse and validate old data
-          const parsed = oldData.map(item => safeParse(item, UserSchema));
+          const parsed: Result<User, string>[] = oldData.map((item: unknown) => validate(item, UserSchema));
           const partitioned = partition(parsed);
 
           // 2. Handle validation failures
@@ -625,7 +628,7 @@ describe("Integration Tests", () => {
           }
 
           // 3. Transform valid data to new format
-          const transformed = partitioned.successes.map(user => ({
+          const transformed = partitioned.successes.map((user: User) => ({
             ...user,
             migrated: true,
             migratedAt: new Date().toISOString(),
@@ -633,13 +636,13 @@ describe("Integration Tests", () => {
           }));
 
           // 4. Validate against new schema
-          const revalidated = transformed.map(item => safeParse(item, newSchema));
-          const finalResults = yield all(revalidated);
+          const revalidated: Result<any, string>[] = transformed.map((item: any) => validate(item, newSchema));
+          const finalResults: any[] = yield all(revalidated);
 
           // 5. Analyze migration results
           const analysis = analyze([
-            ...partitioned.successes.map(() => ok("migrated")),
-            ...partitioned.errors.map(() => err("validation_failed"))
+            ...partitioned.successes.map((): Result<string, never> => ok("migrated")),
+            ...partitioned.errors.map((): Result<never, string> => err("validation_failed"))
           ]);
 
           return {
@@ -658,7 +661,7 @@ describe("Integration Tests", () => {
         legacyId: z.number()
       });
 
-      const oldUserData = [
+      const oldUserData: unknown[] = [
         { id: 1, name: "Alice", email: "alice@example.com" },
         { id: 2, name: "Bob", email: "bob@example.com" },
         { id: "invalid", name: "", email: "bad-email" }, // This will fail validation
@@ -680,7 +683,7 @@ describe("Integration Tests", () => {
   describe("Performance Integration", () => {
     it("should maintain performance characteristics in cross-module usage", () => {
       // Test: Ensure cross-module usage doesn't degrade performance
-      const largeBatch = Array.from({ length: 1000 }, (_, i) => ({
+      const largeBatch: unknown[] = Array.from({ length: 1000 }, (_, i) => ({
         id: i + 1,
         name: `User ${i + 1}`,
         email: `user${i + 1}@example.com`
@@ -688,18 +691,18 @@ describe("Integration Tests", () => {
 
       const start = performance.now();
 
-      const validationResult = all(largeBatch.map(user => validate(user, UserSchema)));
-      const transformed = map(validationResult, users => users.map(u => u.name.toUpperCase()));
-      const processed = andThen(transformed, names => {
-        const analysis = analyze(names.map(name => ok(name.length)));
+      const validationResult: Result<User[], string> = all(largeBatch.map((user: unknown) => validate(user, UserSchema)));
+      const transformed: Result<string[], string> = map(validationResult, (users: User[]) => users.map((u: User) => u.name.toUpperCase()));
+      const processed: Result<{ names: string[], averageNameLength: number }, string> = andThen(transformed, (names: string[]) => {
+        const analysis = analyze(names.map((name: string) => ok(name.length)));
         return ok({
           names,
           averageNameLength: analysis.successCount > 0
-            ? analysis.successes.reduce((sum, len) => sum + len, 0) / analysis.successCount
+            ? analysis.successes.reduce((sum: number, len: number) => sum + len, 0) / analysis.successCount
             : 0
         });
       });
-      const final = tap(processed, data =>
+      const final: Result<{ names: string[], averageNameLength: number }, string> = tap(processed, (data: { names: string[], averageNameLength: number }) =>
         console.log(`Processed ${data.names.length} users, avg name length: ${data.averageNameLength}`)
       );
 
@@ -717,15 +720,15 @@ describe("Integration Tests", () => {
 
     it("should handle early exit optimization across modules", () => {
       // Test: Early exit should work in cross-module chains
-      const testData = Array.from({ length: 1000 }, (_, i) =>
+      const testData: Result<User, ApiError>[] = Array.from({ length: 1000 }, (_, i) =>
         i === 500 ? mockApiCall(true) : mockApiCall() // Error at index 500
       );
 
       const start = performance.now();
 
-      const batchResult = all(testData); // Should exit early at index 500
-      const mapped = map(batchResult, users => users.length);
-      const final = tap(mapped, count => console.log(`Processed ${count} users`));
+      const batchResult: Result<User[], ApiError> = all(testData); // Should exit early at index 500
+      const mapped: Result<number, ApiError> = map(batchResult, (users: User[]) => users.length);
+      const final: Result<number, ApiError> = tap(mapped, (count: number) => console.log(`Processed ${count} users`));
 
       const end = performance.now();
       const duration = end - start;
