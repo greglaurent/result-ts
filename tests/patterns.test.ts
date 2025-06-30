@@ -1,16 +1,19 @@
 import { describe, it, expect } from "vitest";
 import {
   ok,
+  Ok,
+  Err,
   err,
   isOk,
   isErr,
   safe,
   safeAsync,
   yieldFn,
-  //zipWith,
+  zipWith,
   zip,
   type Result,
 } from "../src/patterns";
+import { OK } from "@/types";
 
 // ✅ FIXED: Deterministic ID generation instead of Date.now()
 let mockIdCounter = 1000;
@@ -250,48 +253,47 @@ describe("Pattern Operations", () => {
     });
   });
 
-  //TODO: Add zipWith to patterns
-  //describe("zipWith()", () => {
-  //  it("should combine two successful Results with a function", () => {
-  //    const result1 = ok(10);
-  //    const result2 = ok(20);
-  //    const combined = zipWith(result1, result2, (a, b) => a + b);
+  describe("zipWith()", () => {
+    it("should combine two successful Results with a function", () => {
+      const result1 = ok(10);
+      const result2 = ok(20);
+      const combined = zipWith(result1, result2, (a, b) => a + b);
 
-  //    expect(combined).toEqual({ type: "Ok", value: 30 });
-  //  });
+      expect(combined).toEqual({ type: "Ok", value: 30 });
+    });
 
-  //  it("should return first error if first Result is error", () => {
-  //    const result1 = err("first error");
-  //    const result2 = ok(20);
-  //    const combined = zipWith(result1, result2, (a, b) => a + b);
+    it("should return first error if first Result is error", () => {
+      const result1: Result<number, string> = err("first error");
+      const result2: Result<number, string> = ok(20);
+      const combined = zipWith(result1, result2, (a: number, b: number) => a + b);
 
-  //    expect(combined).toEqual({ type: "Err", error: "first error" });
-  //  });
+      expect(combined).toEqual({ type: "Err", error: "first error" });
+    });
 
-  //  it("should return second error if second Result is error", () => {
-  //    const result1 = ok(10);
-  //    const result2 = err("second error");
-  //    const combined = zipWith(result1, result2, (a, b) => a + b);
+    it("should return second error if second Result is error", () => {
+      const result1 = ok(10);
+      const result2 = err("second error");
+      const combined = zipWith(result1, result2, (a: number, b: number) => a + b);
 
-  //    expect(combined).toEqual({ type: "Err", error: "second error" });
-  //  });
+      expect(combined).toEqual({ type: "Err", error: "second error" });
+    });
 
-  //  it("should return first error if both Results are errors", () => {
-  //    const result1 = err("first error");
-  //    const result2 = err("second error");
-  //    const combined = zipWith(result1, result2, (a, b) => a + b);
+    it("should return first error if both Results are errors", () => {
+      const result1: Err<string> = err("first error");
+      const result2: Err<string> = err("second error");
+      const combined = zipWith(result1, result2, (a: number, b: number) => a + b);
 
-  //    expect(combined).toEqual({ type: "Err", error: "first error" });
-  //  });
+      expect(combined).toEqual({ type: "Err", error: "first error" });
+    });
 
-  //  it("should work with different types", () => {
-  //    const numberResult = ok(42);
-  //    const stringResult = ok("hello");
-  //    const combined = zipWith(numberResult, stringResult, (num, str) => `${str}: ${num}`);
+    it("should work with different types", () => {
+      const numberResult = ok(42);
+      const stringResult = ok("hello");
+      const combined = zipWith(numberResult, stringResult, (num, str) => `${str}: ${num}`);
 
-  //    expect(combined).toEqual({ type: "Ok", value: "hello: 42" });
-  //  });
-  //});
+      expect(combined).toEqual({ type: "Ok", value: "hello: 42" });
+    });
+  });
 
   describe("zip()", () => {
     it("should combine two successful Results into a tuple", () => {

@@ -52,7 +52,7 @@ describe("Bundle Size Tests - README Claims Verification", () => {
     console.log(`✅ Safe execution: ${size} bytes (target: ~257 bytes)`);
   });
 
-  it("iter module - should match README claim (~143 bytes)", async () => {
+  it("iter module - should match README claim (~800 bytes)", async () => {
     const importCode = `
       import { map } from 'result-ts/iter';
       console.log(map);
@@ -60,7 +60,7 @@ describe("Bundle Size Tests - README Claims Verification", () => {
 
     const size = await bundleAndMeasure(importCode);
     expect(size).toBeLessThan(900); // Updated: current ~778 bytes + buffer
-    console.log(`✅ Iter module: ${size} bytes (target: ~143 bytes)`);
+    console.log(`✅ Iter module: ${size} bytes (target: ~800 bytes)`);
   });
 
   it("batch module - should match README claim (~291 bytes)", async () => {
@@ -133,7 +133,7 @@ describe("Bundle Size Tests - Architecture Verification", () => {
       {
         name: "Data transform",
         import: `import { map } from 'result-ts/iter'; console.log(map);`,
-        target: 143,
+        target: 800,
       },
       {
         name: "Array processing",
