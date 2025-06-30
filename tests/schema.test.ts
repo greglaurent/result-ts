@@ -829,11 +829,6 @@ describe("Schema Module - Validation and Parsing", () => {
     });
 
     it("should handle nested Result parsing", () => {
-      const NestedResultSchema = resultSchema(
-        resultSchema(UserSchema, z.string()),
-        z.number(),
-      );
-
       const nestedResultJson = JSON.stringify({
         type: "Ok",
         value: {
