@@ -425,6 +425,88 @@ export function zip<T, U, E>(
 }
 
 /**
+ * Combines two Results with a function, applying the function to both values if both are successful.
+ * Fails with the first error encountered (left-to-right precedence).
+ * Error type constraint ensures compatible error handling between both Results.
+ *
+ * @example
+ * ```typescript
+ * // Mathematical operations with consistent error types
+ * const num1: Result<number, ValidationError> = validateNumber("10");
+ * const num2: Result<number, ValidationError> = validateNumber("20");
+ * const sum = zipWith(num1, num2, (a, b) => a + b);
+ * // Returns: Result<number, ValidationError> → Ok(30) or first ValidationError
+ * // Type safety: any error has .field, .message, .code properties
+ *
+ * // String concatenation with structured errors
+ * const firstName: Result<string, ApiError> = fetchFirstName(userId);
+ * const lastName: Result<string, ApiError> = fetchLastName(userId);
+ * const fullName = zipWith(firstName, lastName, (first, last) => `${first} ${last}`);
+ * // Type safety ensures errors have .status, .endpoint, .message properties
+ *
+ * // Object creation from multiple validated inputs
+ * const emailResult: Result<string, ValidationError> = validateEmail(formData.email);
+ * const phoneResult: Result<string, ValidationError> = validatePhone(formData.phone);
+ * const contact = zipWith(emailResult, phoneResult, (email, phone) => ({
+ *   email,
+ *   phone,
+ *   contactMethods: ['email', 'phone']
+ * }));
+ * // Returns: Result<ContactInfo, ValidationError>
+ *
+ * // Type mixing with meaningful combinations
+ * const userResult: Result<User, DatabaseError> = fetchUser(id);
+ * const countResult: Result<number, DatabaseError> = getUserPostCount(id);
+ * const userSummary = zipWith(userResult, countResult, (user, postCount) => ({
+ *   ...user,
+ *   stats: { posts: postCount, joinedDate: user.createdAt }
+ * }));
+ * // Type safety ensures errors have .code, .query, .table properties
+ * ```
+ *
+ * @param resultA - First Result to combine (with constrained error type)
+ * @param resultB - Second Result to combine (with compatible error type)
+ * @param combiner - Function to combine both success values
+ * @returns Result containing the combined value or first error
+ * @throws TypeError if either result is not a valid Result object or combiner is not a function
+ * @see {@link zip} for simple tuple combination without transformation
+ * @see {@link apply} for applicative functor patterns
+ */
+export function zipWith<T, U, V, E extends Record<string, unknown> | string | Error>(
+  resultA: Result<T, E>,
+  resultB: Result<U, E>,
+  combiner: (a: T, b: U) => V,
+): Result<V, E>;
+export function zipWith<T, U, V, E>(
+  resultA: Result<T, E>,
+  resultB: Result<U, E>,
+  combiner: (a: T, b: U) => V,
+): Result<V, E>;
+export function zipWith<T, U, V, E>(
+  resultA: Result<T, E>,
+  resultB: Result<U, E>,
+  combiner: (a: T, b: U) => V,
+): Result<V, E> {
+  validateResult(resultA, "zipWith()", "resultA");
+  validateResult(resultB, "zipWith()", "resultB");
+  validateMapper(combiner, "zipWith()", "combiner");
+
+  if (resultA.type === OK && resultB.type === OK) {
+    return { type: OK, value: combiner(resultA.value, resultB.value) };
+  }
+
+  if (resultA.type === ERR) {
+    return { type: ERR, error: resultA.error };
+  }
+
+  if (resultB.type === ERR) {
+    return { type: ERR, error: resultB.error };
+  }
+
+  throw new Error("Unreachable: both results cannot be Ok here");
+}
+
+/**
  * Applies a function wrapped in a Result to a value wrapped in a Result.
  * This is the applicative functor pattern for Results.
  * Error type constraint ensures compatible error handling between function and value Results.
@@ -493,7 +575,7 @@ export function apply<T, U, E>(
   if (typeof resultFn.value !== "function") {
     throw new TypeError(
       "apply(): resultFn must contain a function value, got " +
-        typeof resultFn.value,
+      typeof resultFn.value,
     );
   }
   return { type: OK, value: resultFn.value(resultValue.value) };
@@ -516,6 +598,7 @@ export function apply<T, U, E>(
  * Advanced features:
  * - safe() → Rust-style ? operator with generators and consistent error types
  * - zip() → combine multiple Results into tuples with compatible errors
+ * - zipWith() →  combines two Results with a function, applying the function to both values if both are successful
  * - apply() → applicative functor patterns with structured error handling
  * - chain() → Promise-like fluent API with error type consistency
  * - resultOk/resultErr → generator typing helpers
