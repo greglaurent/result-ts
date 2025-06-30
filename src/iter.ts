@@ -84,6 +84,7 @@ const validatePromise = (promise: unknown, functionName: string): void => {
 
 /**
  * Transforms the success value of a Result using the provided function.
+ * Provides overloaded signatures for better type inference when error types are preserved.
  *
  * @example
  * ```typescript
@@ -94,6 +95,11 @@ const validatePromise = (promise: unknown, functionName: string): void => {
  * const error = err("failed");
  * const mapped = map(error, x => x * 2);
  * // Returns: Result<never, string> → Err("failed") - unchanged
+ *
+ * // Error type constraint ensures meaningful error handling
+ * const apiResult: Result<User, ApiError> = fetchUser(1);
+ * const enhanced = map(apiResult, user => ({ ...user, processed: true }));
+ * // Returns: Result<EnhancedUser, ApiError> - error type preserved
  * ```
  *
  * @param result - The Result to transform
@@ -104,16 +110,24 @@ const validatePromise = (promise: unknown, functionName: string): void => {
  * @see {@link mapErr} for error transformations
  * @see {@link andThen} for chaining operations that return Results
  */
-export const map = <T, U, E>(
+export function map<T, U, E extends Record<string, unknown> | string | Error>(
   result: Result<T, E>,
   mapper: (value: T) => U,
-): Result<U, E> => {
+): Result<U, E>;
+export function map<T, U, E>(
+  result: Result<T, E>,
+  mapper: (value: T) => U,
+): Result<U, E>;
+export function map<T, U, E>(
+  result: Result<T, E>,
+  mapper: (value: T) => U,
+): Result<U, E> {
   validateResult(result, "map()");
   validateMapper(mapper, "map()");
   return result.type === OK
     ? { type: OK, value: mapper(result.value) }
     : result;
-};
+}
 
 /**
  * Transforms the success value of a Promise<Result> using an async function.
@@ -135,10 +149,22 @@ export const map = <T, U, E>(
  * @see {@link map} for sync transformations
  * @see {@link andThenAsync} for async chaining
  */
-export const mapAsync = async <T, U, E>(
+export function mapAsync<
+  T,
+  U,
+  E extends Record<string, unknown> | string | Error,
+>(
   promise: Promise<Result<T, E>>,
   mapper: (value: T) => U | Promise<U>,
-): Promise<Result<U, E>> => {
+): Promise<Result<U, E>>;
+export function mapAsync<T, U, E>(
+  promise: Promise<Result<T, E>>,
+  mapper: (value: T) => U | Promise<U>,
+): Promise<Result<U, E>>;
+export async function mapAsync<T, U, E>(
+  promise: Promise<Result<T, E>>,
+  mapper: (value: T) => U | Promise<U>,
+): Promise<Result<U, E>> {
   validatePromise(promise, "mapAsync()");
   validateMapper(mapper, "mapAsync()");
 
@@ -150,10 +176,11 @@ export const mapAsync = async <T, U, E>(
     return { type: OK, value: mapped };
   }
   return result;
-};
+}
 
 /**
  * Transforms the error value of a Result using the provided function.
+ * Constrains the original error type to ensure meaningful error transformations.
  *
  * @example
  * ```typescript
@@ -164,6 +191,10 @@ export const mapAsync = async <T, U, E>(
  *   timestamp: Date.now()
  * }));
  * // Returns: Result<never, ErrorObject> → Err with enhanced error object
+ *
+ * // Type constraint ensures error can be meaningfully processed
+ * const apiError: Result<Data, {status: number, message: string}> = callAPI();
+ * const standardError = mapErr(apiError, err => new Error(`${err.status}: ${err.message}`));
  * ```
  *
  * @param result - The Result to transform
@@ -173,16 +204,25 @@ export const mapAsync = async <T, U, E>(
  * @see {@link mapErrAsync} for async error transformations
  * @see {@link map} for value transformations
  */
-export const mapErr = <T, E, F>(
+export function mapErr<
+  T,
+  E extends Record<string, unknown> | string | Error,
+  F,
+>(result: Result<T, E>, mapper: (error: E) => F): Result<T, F>;
+export function mapErr<T, E, F>(
   result: Result<T, E>,
   mapper: (error: E) => F,
-): Result<T, F> => {
+): Result<T, F>;
+export function mapErr<T, E, F>(
+  result: Result<T, E>,
+  mapper: (error: E) => F,
+): Result<T, F> {
   validateResult(result, "mapErr()");
   validateMapper(mapper, "mapErr()");
   return result.type === ERR
     ? { type: ERR, error: mapper(result.error) }
     : result;
-};
+}
 
 /**
  * Transforms the error value of a Promise<Result> using an async function.
@@ -203,10 +243,22 @@ export const mapErr = <T, E, F>(
  * @see {@link mapErr} for sync error transformations
  * @see {@link mapAsync} for value transformations
  */
-export const mapErrAsync = async <T, E, F>(
+export function mapErrAsync<
+  T,
+  E extends Record<string, unknown> | string | Error,
+  F,
+>(
   promise: Promise<Result<T, E>>,
   mapper: (error: E) => F | Promise<F>,
-): Promise<Result<T, F>> => {
+): Promise<Result<T, F>>;
+export function mapErrAsync<T, E, F>(
+  promise: Promise<Result<T, E>>,
+  mapper: (error: E) => F | Promise<F>,
+): Promise<Result<T, F>>;
+export async function mapErrAsync<T, E, F>(
+  promise: Promise<Result<T, E>>,
+  mapper: (error: E) => F | Promise<F>,
+): Promise<Result<T, F>> {
   validatePromise(promise, "mapErrAsync()");
   validateMapper(mapper, "mapErrAsync()");
 
@@ -218,11 +270,12 @@ export const mapErrAsync = async <T, E, F>(
     return { type: ERR, error: mapped };
   }
   return result;
-};
+}
 
 /**
  * Chains Results together, passing the success value to the next operation.
  * Also known as flatMap or bind in functional programming.
+ * Constrains error types to ensure consistent error handling through the chain.
  *
  * @example
  * ```typescript
@@ -249,14 +302,23 @@ export const mapErrAsync = async <T, E, F>(
  * @see {@link andThenAsync} for async chaining
  * @see {@link map} for simple transformations
  */
-export const andThen = <T, U, E>(
+export function andThen<
+  T,
+  U,
+  E extends Record<string, unknown> | string | Error,
+>(result: Result<T, E>, mapper: (value: T) => Result<U, E>): Result<U, E>;
+export function andThen<T, U, E>(
   result: Result<T, E>,
   mapper: (value: T) => Result<U, E>,
-): Result<U, E> => {
+): Result<U, E>;
+export function andThen<T, U, E>(
+  result: Result<T, E>,
+  mapper: (value: T) => Result<U, E>,
+): Result<U, E> {
   validateResult(result, "andThen()");
   validateMapper(mapper, "andThen()");
   return result.type === OK ? mapper(result.value) : result;
-};
+}
 
 /**
  * Chains Promise<Result> together using an async function.
@@ -277,10 +339,22 @@ export const andThen = <T, U, E>(
  * @see {@link andThen} for sync chaining
  * @see {@link mapAsync} for simple async transformations
  */
-export const andThenAsync = async <T, U, E>(
+export function andThenAsync<
+  T,
+  U,
+  E extends Record<string, unknown> | string | Error,
+>(
   promise: Promise<Result<T, E>>,
   mapper: (value: T) => Promise<Result<U, E>>,
-): Promise<Result<U, E>> => {
+): Promise<Result<U, E>>;
+export function andThenAsync<T, U, E>(
+  promise: Promise<Result<T, E>>,
+  mapper: (value: T) => Promise<Result<U, E>>,
+): Promise<Result<U, E>>;
+export async function andThenAsync<T, U, E>(
+  promise: Promise<Result<T, E>>,
+  mapper: (value: T) => Promise<Result<U, E>>,
+): Promise<Result<U, E>> {
   validatePromise(promise, "andThenAsync()");
   validateMapper(mapper, "andThenAsync()");
 
@@ -288,7 +362,7 @@ export const andThenAsync = async <T, U, E>(
   validateResult(result, "andThenAsync()");
 
   return result.type === OK ? await mapper(result.value) : result;
-};
+}
 
 /**
  * This entry point includes core essentials + iteration operations.
@@ -296,6 +370,11 @@ export const andThenAsync = async <T, U, E>(
  * Use for: data transformation, chaining, functional composition
  *
  * Key functions: map(), andThen(), mapAsync(), mapErr()
+ *
+ * Generic constraints ensure type safety:
+ * - Error types constrained to meaningful types for better error handling
+ * - Overloaded signatures provide optimal type inference
+ * - Backward compatibility maintained with unconstrained overloads
  *
  * For complex operation chaining, consider:
  * - `chain()` from result-ts/patterns → Promise-like fluent API with unlimited operations
