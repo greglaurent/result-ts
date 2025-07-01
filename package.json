@@ -1,6 +1,6 @@
 {
   "name": "result-ts",
-  "version": "0.4.0-beta",
+  "version": "0.7.0-beta",
   "license": "MIT",
   "description": "The performance-first Result library with comprehensive utilities and zero overhead.",
   "author": {
@@ -28,19 +28,18 @@
     "LICENSE"
   ],
   "scripts": {
+    "bench": "pnpm build && vitest bench --config vitest.config.ts",
+    "bench:run": "pnpm build && vitest bench --run --config vitest.config.ts",
+    "bench:ci": "pnpm build && vitest bench --run --reporter=json --outputFile=benchmark-results.json --config vitest.config.ts",
     "build": "pnpm clean && tsc && tsc-alias",
     "build:watch": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
     "clean": "rm -rf dist",
     "dev": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
-    "docs": "pnpm build && typedoc",
-    "docs:serve": "pnpm docs && npx http-server docs -p 8080",
-    "docs:watch": "typedoc --watch",
-    "docs:debug": "pnpm build && typedoc --logLevel Verbose",
     "lint": "echo \"Linting coming soon\" && exit 0",
     "prepublishOnly": "pnpm build",
-    "test": "vitest",
+    "test": "vitest --config vitest.config.ts",
+    "test:bundle": "pnpm build && vitest run tests/bundle-size.test.ts",
     "test:run": "vitest run",
-    "test:size": "pnpm build && vitest run tests/bundle-size.test.ts",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --",
     "typecheck": "tsc --noEmit"
@@ -61,17 +60,12 @@
     "monad",
     "either"
   ],
-  "packageManager": "pnpm@10.12.1",
+  "packageManager": "pnpm@10.12.4",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.js"
-    },
-    "./minimal": {
-      "types": "./dist/minimal.d.ts",
-      "import": "./dist/minimal.js",
-      "require": "./dist/minimal.js"
     },
     "./iter": {
       "types": "./dist/iter.d.ts",
@@ -83,10 +77,20 @@
       "import": "./dist/batch.js",
       "require": "./dist/batch.js"
     },
-    "./core": {
-      "types": "./dist/core.d.ts",
-      "import": "./dist/core.js",
-      "require": "./dist/core.js"
+    "./utils": {
+      "types": "./dist/utils.d.ts",
+      "import": "./dist/utils.js",
+      "require": "./dist/utils.js"
+    },
+    "./patterns": {
+      "types": "./dist/patterns.d.ts",
+      "import": "./dist/patterns.js",
+      "require": "./dist/patterns.js"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js",
+      "require": "./dist/schema.js"
     }
   },
   "peerDependencies": {
@@ -103,7 +107,6 @@
     "esbuild": "^0.25.5",
     "perf_hooks": "^0.0.1",
     "tsc-alias": "^1.8.10",
-    "typedoc": "^0.28.5",
     "typescript": "^5.8.3",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.4",

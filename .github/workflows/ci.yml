@@ -1,5 +1,4 @@
-# .github/workflows/package.yml
-name: Result TS Test
+name: CI
 
 on:
   push:
@@ -18,21 +17,30 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20" # Updated to Node 20
+          node-version: "20"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 10.12.1 # Updated to match your package.json
+          version: 10.12.1
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile # Added frozen-lockfile for CI
+        run: pnpm install --frozen-lockfile
 
       - name: Type check
-        run: pnpm typecheck # Added type checking step
+        run: pnpm typecheck
 
       - name: Build library
         run: pnpm build
+
+      - name: Run tests
+        run: pnpm test:run
+
+      - name: Verify bundle sizes
+        run: pnpm test:bundle
+
+      - name: Run performance benchmarks
+        run: pnpm bench:run
 
       - name: Verify build output
         run: |
@@ -104,3 +112,13 @@ jobs:
           console.log('🎉 All tests passed!');
           EOF
           node test.js
+
+      # Optional: Track performance over time (requires setup)
+      # - name: Store benchmark results
+      #   uses: benchmark-action/github-action-benchmark@v1
+      #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      #   with:
+      #     tool: 'benchmarkjs'
+      #     output-file-path: benchmark-results.json
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     auto-push: true
