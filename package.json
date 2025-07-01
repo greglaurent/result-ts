@@ -44,8 +44,7 @@
 		"test:run": "vitest run",
 		"test:watch": "vitest --watch",
 		"test:ui": "vitest --",
-		"typecheck": "tsc --noEmit",
-		"setup:labels": "bash scripts/setup-labels.sh"
+		"typecheck": "tsc --noEmit"
 	},
 	"keywords": [
 		"result",
