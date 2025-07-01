@@ -663,8 +663,6 @@ This is a solo project for now but could be open to contribution. Reach out if y
 are interested. Contribution documents and publishing are in the works once the
 API stabilizes.
 
-[//]: <> (We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines)
-
 ## License
 
 MIT © [Gregory Laurent](https://github.com/greglaurent)
