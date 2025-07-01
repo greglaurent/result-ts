@@ -9,7 +9,7 @@
 
 </center>
 
-**This is an unpublished, pre-release library.**
+**This is an pre-release library.**
 
 The performance-first Result library for TypeScript with comprehensive utilities
 and zero overhead.
@@ -594,10 +594,10 @@ Start with core essentials and add layers as needed:
 | Layer                                          | Functions              | Bundle Size       | Use Case                              |
 | ---------------------------------------------- | ---------------------- | ----------------- | ------------------------------------- |
 | **Core** (`result-ts`)                         | 11 essential functions | ~55-331 bytes     | Basic Result handling, safe execution |
-| **+ Data Transform** (`result-ts/iter`)        | +4 functions           | ~778 bytes total  | Value mapping, operation chaining     |
-| **+ Array Processing** (`result-ts/batch`)     | +10 functions          | ~1113 bytes total | Bulk operations, statistics           |
+| **+ Data Transform** (`result-ts/iter`)        | +4 functions           | ~808 bytes total  | Value mapping, operation chaining     |
+| **+ Array Processing** (`result-ts/batch`)     | +10 functions          | ~965 bytes total  | Bulk operations, statistics           |
 | **+ Debugging** (`result-ts/utils`)            | +5 functions           | Similar to core   | Side effects, nullable conversion     |
-| **+ Advanced Patterns** (`result-ts/patterns`) | +7 functions           | ~1252 bytes total | Generators, applicative patterns      |
+| **+ Advanced Patterns** (`result-ts/patterns`) | +7 functions           | ~1004 bytes total | Generators, applicative patterns      |
 | **+ Validation** (`result-ts/schema`)          | +12 functions          | ~556 bytes\*      | Runtime validation with Zod           |
 
 \*Excludes Zod dependency (~13KB gzipped)
@@ -614,16 +614,16 @@ import { ok, err, isOk } from "result-ts";
 // Safe execution - 331 bytes
 import { ok, err, handle, match } from "result-ts";
 
-// Data transformation - 778 bytes
+// Data transformation - 808 bytes
 import { ok, err, handle, match } from "result-ts";
 import { map, andThen } from "result-ts/iter";
 
-// Array processing - 1113 bytes
+// Array processing - 965 bytes
 import { ok, err, handle, match } from "result-ts";
 import { map, andThen } from "result-ts/iter";
 import { all, partition } from "result-ts/batch";
 
-// Advanced patterns - 1252 bytes
+// Advanced patterns - 1004 bytes
 import { ok, err, handle, match } from "result-ts";
 import { map, andThen } from "result-ts/iter";
 import { all, partition } from "result-ts/batch";
