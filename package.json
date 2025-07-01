@@ -1,6 +1,6 @@
 {
 	"name": "result-ts",
-	"version": "0.8.0-beta",
+	"version": "0.8.1-beta",
 	"license": "MIT",
 	"description": "The performance-first Result library with comprehensive utilities and zero overhead.",
 	"author": {

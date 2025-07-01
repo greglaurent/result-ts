@@ -7,6 +7,7 @@ currently being supported with security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
+ptio
 | 0.8.0-beta  | :white_check_mark: |
 
 ## Reporting a Vulnerability
