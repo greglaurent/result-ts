@@ -5,7 +5,7 @@
 export * from "@/core";
 
 // Import types and constants for batch implementations
-import { OK, ERR, type Result } from "@/types";
+import { ERR, OK, type Result } from "@/types";
 
 // =============================================================================
 // RUNTIME VALIDATION HELPERS
@@ -16,60 +16,67 @@ import { OK, ERR, type Result } from "@/types";
  * Provides helpful error messages for common mistakes.
  */
 const validateResult = <T, E>(
-  result: Result<T, E>,
-  functionName: string,
-  index?: number,
+	result: Result<T, E>,
+	functionName: string,
+	index?: number,
 ): void => {
-  const indexInfo = index !== undefined ? ` at index ${index}` : "";
+	const indexInfo = index !== undefined ? ` at index ${index}` : "";
 
-  if (!result || typeof result !== "object") {
-    throw new TypeError(
-      `${functionName}: Result${indexInfo} must be a Result object, got ${typeof result}`,
-    );
-  }
-  const resultObj = result as any;
-  if (!("type" in resultObj)) {
-    throw new TypeError(
-      `${functionName}: Result${indexInfo} must have a 'type' property (Ok or Err)`,
-    );
-  }
-  if (resultObj.type !== OK && resultObj.type !== ERR) {
-    throw new TypeError(
-      `${functionName}: Invalid Result type '${resultObj.type}'${indexInfo}, expected '${OK}' or '${ERR}'`,
-    );
-  }
-  if (resultObj.type === OK && !("value" in resultObj)) {
-    throw new TypeError(
-      `${functionName}: Ok Result${indexInfo} must have a 'value' property`,
-    );
-  }
-  if (resultObj.type === ERR && !("error" in resultObj)) {
-    throw new TypeError(
-      `${functionName}: Err Result${indexInfo} must have an 'error' property`,
-    );
-  }
+	if (!result || typeof result !== "object") {
+		throw new TypeError(
+			`${functionName}: Result${indexInfo} must be a Result object, got ${typeof result}`,
+		);
+	}
+	const resultObj = result as unknown;
+	if (
+		typeof resultObj !== "object" ||
+		resultObj === null ||
+		!("type" in resultObj)
+	) {
+		throw new TypeError(
+			`${functionName}: Result${indexInfo} must have a 'type' property (Ok or Err)`,
+		);
+	}
+	if (
+		(resultObj as Record<string, unknown>).type !== OK &&
+		(resultObj as Record<string, unknown>).type !== ERR
+	) {
+		throw new TypeError(
+			`${functionName}: Invalid Result type '${resultObj.type}'${indexInfo}, expected '${OK}' or '${ERR}'`,
+		);
+	}
+	if (resultObj.type === OK && !("value" in resultObj)) {
+		throw new TypeError(
+			`${functionName}: Ok Result${indexInfo} must have a 'value' property`,
+		);
+	}
+	if (resultObj.type === ERR && !("error" in resultObj)) {
+		throw new TypeError(
+			`${functionName}: Err Result${indexInfo} must have an 'error' property`,
+		);
+	}
 };
 
 /**
  * Validates an array of Results, skipping null/undefined elements as documented.
  */
 const validateResultArray = <T, E>(
-  results: Array<Result<T, E>>,
-  functionName: string,
+	results: Array<Result<T, E>>,
+	functionName: string,
 ): void => {
-  if (!Array.isArray(results)) {
-    throw new TypeError(
-      `${functionName}: First argument must be an array of Results, got ${typeof results}`,
-    );
-  }
+	if (!Array.isArray(results)) {
+		throw new TypeError(
+			`${functionName}: First argument must be an array of Results, got ${typeof results}`,
+		);
+	}
 
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
-    // Skip null/undefined as these functions handle them gracefully
-    if (result != null) {
-      validateResult(result, functionName, i);
-    }
-  }
+	for (let i = 0; i < results.length; i++) {
+		const result = results[i];
+		// Skip null/undefined as these functions handle them gracefully
+		if (result != null) {
+			validateResult(result, functionName, i);
+		}
+	}
 };
 
 // =============================================================================
@@ -115,23 +122,23 @@ const validateResultArray = <T, E>(
  * @see {@link oks} for extracting only success values
  */
 export function all<T, E extends Record<string, unknown> | string | Error>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): Result<T[], E>;
 export function all<T, E>(results: Array<Result<T, E>>): Result<T[], E>;
 export function all<T, E>(results: Array<Result<T, E>>): Result<T[], E> {
-  validateResultArray(results, "all()");
+	validateResultArray(results, "all()");
 
-  const values = [];
-  for (const result of results) {
-    if (!result) continue; // Skip null/undefined elements gracefully
-    if (result.type === ERR) {
-      return result;
-    }
-    if (result.type === OK) {
-      values.push(result.value);
-    }
-  }
-  return { type: OK, value: values };
+	const values = [];
+	for (const result of results) {
+		if (!result) continue; // Skip null/undefined elements gracefully
+		if (result.type === ERR) {
+			return result;
+		}
+		if (result.type === OK) {
+			values.push(result.value);
+		}
+	}
+	return { type: OK, value: values };
 }
 
 /**
@@ -171,36 +178,36 @@ export function all<T, E>(results: Array<Result<T, E>>): Result<T[], E> {
  * @see {@link allSettledAsync} for non-failing version that returns both successes and errors
  */
 export function allAsync<T, E extends Record<string, unknown> | string | Error>(
-  promises: Array<Promise<Result<T, E>>>,
+	promises: Array<Promise<Result<T, E>>>,
 ): Promise<Result<T[], E>>;
 export function allAsync<T, E>(
-  promises: Array<Promise<Result<T, E>>>,
+	promises: Array<Promise<Result<T, E>>>,
 ): Promise<Result<T[], E>>;
 export async function allAsync<T, E>(
-  promises: Array<Promise<Result<T, E>>>,
+	promises: Array<Promise<Result<T, E>>>,
 ): Promise<Result<T[], E>> {
-  if (!Array.isArray(promises)) {
-    throw new TypeError(
-      `allAsync(): First argument must be an array of Promise<Result>, got ${typeof promises}`,
-    );
-  }
+	if (!Array.isArray(promises)) {
+		throw new TypeError(
+			`allAsync(): First argument must be an array of Promise<Result>, got ${typeof promises}`,
+		);
+	}
 
-  const results = await Promise.all(promises.filter((p) => p != null)); // Filter nulls before Promise.all
-  const values = [];
+	const results = await Promise.all(promises.filter((p) => p != null)); // Filter nulls before Promise.all
+	const values = [];
 
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
-    if (!result) continue; // Extra safety
-    validateResult(result, "allAsync()", i);
-    if (result.type === ERR) {
-      return result;
-    }
-    if (result.type === OK) {
-      values.push(result.value);
-    }
-  }
+	for (let i = 0; i < results.length; i++) {
+		const result = results[i];
+		if (!result) continue; // Extra safety
+		validateResult(result, "allAsync()", i);
+		if (result.type === ERR) {
+			return result;
+		}
+		if (result.type === OK) {
+			values.push(result.value);
+		}
+	}
 
-  return { type: OK, value: values };
+	return { type: OK, value: values };
 }
 
 /**
@@ -240,37 +247,37 @@ export async function allAsync<T, E>(
  * @see {@link partition} for synchronous version
  */
 export function allSettledAsync<
-  T,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	E extends Record<string, unknown> | string | Error,
 >(promises: Array<Promise<Result<T, E>>>): Promise<{ oks: T[]; errors: E[] }>;
 export function allSettledAsync<T, E>(
-  promises: Array<Promise<Result<T, E>>>,
+	promises: Array<Promise<Result<T, E>>>,
 ): Promise<{ oks: T[]; errors: E[] }>;
 export async function allSettledAsync<T, E>(
-  promises: Array<Promise<Result<T, E>>>,
+	promises: Array<Promise<Result<T, E>>>,
 ): Promise<{ oks: T[]; errors: E[] }> {
-  if (!Array.isArray(promises)) {
-    throw new TypeError(
-      `allSettledAsync(): First argument must be an array of Promise<Result>, got ${typeof promises}`,
-    );
-  }
+	if (!Array.isArray(promises)) {
+		throw new TypeError(
+			`allSettledAsync(): First argument must be an array of Promise<Result>, got ${typeof promises}`,
+		);
+	}
 
-  const results = await Promise.all(promises.filter((p) => p != null));
-  const oks = [];
-  const errors = [];
+	const results = await Promise.all(promises.filter((p) => p != null));
+	const oks = [];
+	const errors = [];
 
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
-    if (!result) continue;
-    validateResult(result, "allSettledAsync()", i);
-    if (result.type === OK) {
-      oks.push(result.value);
-    } else if (result.type === ERR) {
-      errors.push(result.error);
-    }
-  }
+	for (let i = 0; i < results.length; i++) {
+		const result = results[i];
+		if (!result) continue;
+		validateResult(result, "allSettledAsync()", i);
+		if (result.type === OK) {
+			oks.push(result.value);
+		} else if (result.type === ERR) {
+			errors.push(result.error);
+		}
+	}
 
-  return { oks, errors };
+	return { oks, errors };
 }
 
 /**
@@ -310,19 +317,19 @@ export async function allSettledAsync<T, E>(
  * @see {@link all} for converting to Result<T[], E>
  */
 export function oks<T, E extends Record<string, unknown> | string | Error>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): T[];
 export function oks<T, E>(results: Array<Result<T, E>>): T[];
 export function oks<T, E>(results: Array<Result<T, E>>): T[] {
-  validateResultArray(results, "oks()");
+	validateResultArray(results, "oks()");
 
-  const values = [];
-  for (const result of results) {
-    if (result && result.type === OK) {
-      values.push(result.value);
-    }
-  }
-  return values;
+	const values = [];
+	for (const result of results) {
+		if (result && result.type === OK) {
+			values.push(result.value);
+		}
+	}
+	return values;
 }
 
 /**
@@ -366,19 +373,19 @@ export function oks<T, E>(results: Array<Result<T, E>>): T[] {
  * @see {@link partition} for getting both successes and errors
  */
 export function errs<T, E extends Record<string, unknown> | string | Error>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): E[];
 export function errs<T, E>(results: Array<Result<T, E>>): E[];
 export function errs<T, E>(results: Array<Result<T, E>>): E[] {
-  validateResultArray(results, "errs()");
+	validateResultArray(results, "errs()");
 
-  const errors = [];
-  for (const result of results) {
-    if (result && result.type === ERR) {
-      errors.push(result.error);
-    }
-  }
-  return errors;
+	const errors = [];
+	for (const result of results) {
+		if (result && result.type === ERR) {
+			errors.push(result.error);
+		}
+	}
+	return errors;
 }
 
 /**
@@ -418,30 +425,30 @@ export function errs<T, E>(results: Array<Result<T, E>>): E[] {
  * @see {@link analyze} for statistics without value extraction
  */
 export function partition<
-  T,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	E extends Record<string, unknown> | string | Error,
 >(results: Array<Result<T, E>>): { oks: T[]; errors: E[] };
 export function partition<T, E>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): { oks: T[]; errors: E[] };
 export function partition<T, E>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): { oks: T[]; errors: E[] } {
-  validateResultArray(results, "partition()");
+	validateResultArray(results, "partition()");
 
-  const oks = [];
-  const errors = [];
+	const oks = [];
+	const errors = [];
 
-  for (const result of results) {
-    if (!result) continue; // Skip null/undefined elements gracefully
-    if (result.type === OK) {
-      oks.push(result.value);
-    } else if (result.type === ERR) {
-      errors.push(result.error);
-    }
-  }
+	for (const result of results) {
+		if (!result) continue; // Skip null/undefined elements gracefully
+		if (result.type === OK) {
+			oks.push(result.value);
+		} else if (result.type === ERR) {
+			errors.push(result.error);
+		}
+	}
 
-  return { oks, errors };
+	return { oks, errors };
 }
 
 /**
@@ -481,55 +488,55 @@ export function partition<T, E>(
  * @see {@link analyze} for statistics only without value extraction
  */
 export function partitionWith<
-  T,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	E extends Record<string, unknown> | string | Error,
 >(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): {
-  oks: T[];
-  errors: E[];
-  okCount: number;
-  errorCount: number;
-  total: number;
+	oks: T[];
+	errors: E[];
+	okCount: number;
+	errorCount: number;
+	total: number;
 };
 export function partitionWith<T, E>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): {
-  oks: T[];
-  errors: E[];
-  okCount: number;
-  errorCount: number;
-  total: number;
+	oks: T[];
+	errors: E[];
+	okCount: number;
+	errorCount: number;
+	total: number;
 };
 export function partitionWith<T, E>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): {
-  oks: T[];
-  errors: E[];
-  okCount: number;
-  errorCount: number;
-  total: number;
+	oks: T[];
+	errors: E[];
+	okCount: number;
+	errorCount: number;
+	total: number;
 } {
-  validateResultArray(results, "partitionWith()");
+	validateResultArray(results, "partitionWith()");
 
-  const oks = [];
-  const errors = [];
+	const oks = [];
+	const errors = [];
 
-  for (const result of results) {
-    if (result && result.type === OK) {
-      oks.push(result.value);
-    } else if (result && result.type === ERR) {
-      errors.push(result.error);
-    }
-  }
+	for (const result of results) {
+		if (result && result.type === OK) {
+			oks.push(result.value);
+		} else if (result && result.type === ERR) {
+			errors.push(result.error);
+		}
+	}
 
-  return {
-    oks,
-    errors,
-    okCount: oks.length,
-    errorCount: errors.length,
-    total: results.length,
-  };
+	return {
+		oks,
+		errors,
+		okCount: oks.length,
+		errorCount: errors.length,
+		total: results.length,
+	};
 }
 
 /**
@@ -571,52 +578,52 @@ export function partitionWith<T, E>(
  * @see {@link partition} for simple separation
  */
 export function analyze<T, E extends Record<string, unknown> | string | Error>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): {
-  okCount: number;
-  errorCount: number;
-  total: number;
-  hasErrors: boolean;
-  isEmpty: boolean;
+	okCount: number;
+	errorCount: number;
+	total: number;
+	hasErrors: boolean;
+	isEmpty: boolean;
 };
 export function analyze<T, E>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): {
-  okCount: number;
-  errorCount: number;
-  total: number;
-  hasErrors: boolean;
-  isEmpty: boolean;
+	okCount: number;
+	errorCount: number;
+	total: number;
+	hasErrors: boolean;
+	isEmpty: boolean;
 };
 export function analyze<T, E>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): {
-  okCount: number;
-  errorCount: number;
-  total: number;
-  hasErrors: boolean;
-  isEmpty: boolean;
+	okCount: number;
+	errorCount: number;
+	total: number;
+	hasErrors: boolean;
+	isEmpty: boolean;
 } {
-  validateResultArray(results, "analyze()");
+	validateResultArray(results, "analyze()");
 
-  let okCount = 0;
-  let errorCount = 0;
+	let okCount = 0;
+	let errorCount = 0;
 
-  for (const result of results) {
-    if (result && result.type === OK) {
-      okCount++;
-    } else if (result && result.type === ERR) {
-      errorCount++;
-    }
-  }
+	for (const result of results) {
+		if (result && result.type === OK) {
+			okCount++;
+		} else if (result && result.type === ERR) {
+			errorCount++;
+		}
+	}
 
-  return {
-    okCount,
-    errorCount,
-    total: results.length,
-    hasErrors: errorCount > 0,
-    isEmpty: results.length === 0,
-  };
+	return {
+		okCount,
+		errorCount,
+		total: results.length,
+		hasErrors: errorCount > 0,
+		isEmpty: results.length === 0,
+	};
 }
 
 /**
@@ -658,56 +665,56 @@ export function analyze<T, E>(
  * @see {@link oks} and {@link errs} for all values
  */
 export function findFirst<
-  T,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	E extends Record<string, unknown> | string | Error,
 >(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): {
-  firstOk: T | undefined;
-  firstError: E | undefined;
-  okIndex: number;
-  errorIndex: number;
+	firstOk: T | undefined;
+	firstError: E | undefined;
+	okIndex: number;
+	errorIndex: number;
 };
 export function findFirst<T, E>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): {
-  firstOk: T | undefined;
-  firstError: E | undefined;
-  okIndex: number;
-  errorIndex: number;
+	firstOk: T | undefined;
+	firstError: E | undefined;
+	okIndex: number;
+	errorIndex: number;
 };
 export function findFirst<T, E>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): {
-  firstOk: T | undefined;
-  firstError: E | undefined;
-  okIndex: number;
-  errorIndex: number;
+	firstOk: T | undefined;
+	firstError: E | undefined;
+	okIndex: number;
+	errorIndex: number;
 } {
-  validateResultArray(results, "findFirst()");
+	validateResultArray(results, "findFirst()");
 
-  let firstOk: T | undefined;
-  let firstError: E | undefined;
-  let okIndex = -1;
-  let errorIndex = -1;
+	let firstOk: T | undefined;
+	let firstError: E | undefined;
+	let okIndex = -1;
+	let errorIndex = -1;
 
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
+	for (let i = 0; i < results.length; i++) {
+		const result = results[i];
 
-    if (result && result.type === OK && firstOk === undefined) {
-      firstOk = result.value;
-      okIndex = i;
-    } else if (result && result.type === ERR && firstError === undefined) {
-      firstError = result.error;
-      errorIndex = i;
-    }
+		if (result && result.type === OK && firstOk === undefined) {
+			firstOk = result.value;
+			okIndex = i;
+		} else if (result && result.type === ERR && firstError === undefined) {
+			firstError = result.error;
+			errorIndex = i;
+		}
 
-    if (firstOk !== undefined && firstError !== undefined) {
-      break;
-    }
-  }
+		if (firstOk !== undefined && firstError !== undefined) {
+			break;
+		}
+	}
 
-  return { firstOk, firstError, okIndex, errorIndex };
+	return { firstOk, firstError, okIndex, errorIndex };
 }
 
 /**
@@ -756,48 +763,48 @@ export function findFirst<T, E>(
  * @see {@link analyze} for statistical reduction
  */
 export function reduce<
-  T,
-  E extends Record<string, unknown> | string | Error,
-  Acc,
+	T,
+	E extends Record<string, unknown> | string | Error,
+	Acc,
 >(
-  results: Array<Result<T, E>>,
-  reducer: {
-    onOk: (acc: Acc, value: T, index: number) => Acc;
-    onErr: (acc: Acc, error: E, index: number) => Acc;
-  },
-  initialValue: Acc,
+	results: Array<Result<T, E>>,
+	reducer: {
+		onOk: (acc: Acc, value: T, index: number) => Acc;
+		onErr: (acc: Acc, error: E, index: number) => Acc;
+	},
+	initialValue: Acc,
 ): Acc;
 export function reduce<T, E, Acc>(
-  results: Array<Result<T, E>>,
-  reducer: {
-    onOk: (acc: Acc, value: T, index: number) => Acc;
-    onErr: (acc: Acc, error: E, index: number) => Acc;
-  },
-  initialValue: Acc,
+	results: Array<Result<T, E>>,
+	reducer: {
+		onOk: (acc: Acc, value: T, index: number) => Acc;
+		onErr: (acc: Acc, error: E, index: number) => Acc;
+	},
+	initialValue: Acc,
 ): Acc;
 export function reduce<T, E, Acc>(
-  results: Array<Result<T, E>>,
-  reducer: {
-    onOk: (acc: Acc, value: T, index: number) => Acc;
-    onErr: (acc: Acc, error: E, index: number) => Acc;
-  },
-  initialValue: Acc,
+	results: Array<Result<T, E>>,
+	reducer: {
+		onOk: (acc: Acc, value: T, index: number) => Acc;
+		onErr: (acc: Acc, error: E, index: number) => Acc;
+	},
+	initialValue: Acc,
 ): Acc {
-  validateResultArray(results, "reduce()");
+	validateResultArray(results, "reduce()");
 
-  let acc = initialValue;
+	let acc = initialValue;
 
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
+	for (let i = 0; i < results.length; i++) {
+		const result = results[i];
 
-    if (result && result.type === OK) {
-      acc = reducer.onOk(acc, result.value, i);
-    } else if (result && result.type === ERR) {
-      acc = reducer.onErr(acc, result.error, i);
-    }
-  }
+		if (result && result.type === OK) {
+			acc = reducer.onOk(acc, result.value, i);
+		} else if (result && result.type === ERR) {
+			acc = reducer.onErr(acc, result.error, i);
+		}
+	}
 
-  return acc;
+	return acc;
 }
 
 /**
@@ -846,25 +853,25 @@ export function reduce<T, E, Acc>(
  * @see {@link all} for converting all to success or first error
  */
 export function first<T, E extends Record<string, unknown> | string | Error>(
-  results: Array<Result<T, E>>,
+	results: Array<Result<T, E>>,
 ): Result<T, E[]>;
 export function first<T, E>(results: Array<Result<T, E>>): Result<T, E[]>;
 export function first<T, E>(results: Array<Result<T, E>>): Result<T, E[]> {
-  validateResultArray(results, "first()");
+	validateResultArray(results, "first()");
 
-  const errors = [];
+	const errors = [];
 
-  for (const result of results) {
-    if (!result) continue; // Skip null/undefined elements gracefully
-    if (result.type === OK) {
-      return result;
-    }
-    if (result.type === ERR) {
-      errors.push(result.error);
-    }
-  }
+	for (const result of results) {
+		if (!result) continue; // Skip null/undefined elements gracefully
+		if (result.type === OK) {
+			return result;
+		}
+		if (result.type === ERR) {
+			errors.push(result.error);
+		}
+	}
 
-  return { type: ERR, error: errors };
+	return { type: ERR, error: errors };
 }
 
 /**

@@ -26,6 +26,11 @@ jobs:
         with:
           version: 10.12.1
 
+      - name: Setup Biome
+        uses: biomejs/setup-biome@v2
+        with:
+          version: latest
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -43,6 +48,9 @@ jobs:
 
       - name: Run performance benchmarks
         run: pnpm bench:run
+
+      - name: Run biome
+        run: biome ci .
 
       - name: Verify build output
         run: |
