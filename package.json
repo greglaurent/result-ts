@@ -5,8 +5,7 @@
 	"description": "The performance-first Result library with comprehensive utilities and zero overhead.",
 	"author": {
 		"name": "Gregory Laurent",
-		"email": "gregory.m.laurent@gmail.com",
-		"url": "https://your-website.com"
+		"email": "gregory.m.laurent@gmail.com"
 	},
 	"homepage": "https://github.com/greglaurent/result-ts#readme",
 	"repository": {
