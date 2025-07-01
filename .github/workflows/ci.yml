@@ -29,7 +29,6 @@ jobs:
       - name: Setup Biome
         uses: biomejs/setup-biome@v2
         with:
-          version: latest
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
