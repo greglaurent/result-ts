@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Build library
+        run: pnpm build
+
+      - name: Run tests
+        run: pnpm test:run
+
+      - name: Verify bundle sizes
+        run: pnpm test:bundle
+
+      - name: Run performance benchmarks
+        run: pnpm bench:run
+
+      - name: Verify build output
+        run: |
+          echo "Checking if build files exist..."
+          ls -la dist/
+          test -f dist/index.js || (echo "❌ dist/index.js not found" && exit 1)
+          test -f dist/index.d.ts || (echo "❌ dist/index.d.ts not found" && exit 1)
+          echo "✅ Build files verified"
+
+          # Check that @ imports were resolved correctly
+          if grep -r "@/" dist/ --exclude="*.map"; then
+            echo "❌ Found unresolved @ imports in build output"
+            exit 1
+          else
+            echo "✅ All @ imports resolved correctly"
+          fi
+
+      - name: Pack and test
+        run: |
+          pnpm pack
+          mkdir -p releases
+          mv *.tgz releases/
+
+      - name: Create test project
+        run: |
+          mkdir test-project
+          cd test-project
+          cat > package.json << 'EOF'
+          {
+            "name": "test-project",
+            "version": "1.0.0",
+            "type": "module"
+          }
+          EOF
+
+      - name: Test installation
+        run: |
+          cd test-project
+          npm install ../releases/result-ts-*.tgz
+
+      - name: Verify package structure
+        run: |
+          cd test-project
+          echo "Checking installed package structure..."
+          ls -la node_modules/result-ts/
+          test -f node_modules/result-ts/dist/index.js || (echo "❌ Installed package missing dist/index.js" && exit 1)
+          test -f node_modules/result-ts/dist/index.d.ts || (echo "❌ Installed package missing dist/index.d.ts" && exit 1)
+          test -f node_modules/result-ts/package.json || (echo "❌ Installed package missing package.json" && exit 1)
+
+          echo "✅ Checking what files are actually in the package:"
+          find node_modules/result-ts/ -type f | head -10
+          echo "✅ Package structure verified"
+
+      - name: Test import and usage
+        run: |
+          cd test-project
+          cat > test.js << 'EOF'
+          import { ok, err, isOk, isErr } from 'result-ts';
+          console.log('✅ Import successful');
+
+          const result = ok("hello");
+          console.log('✅ ok() works:', result);
+          console.log('✅ isOk() works:', isOk(result));
+
+          const errorResult = err("something went wrong");
+          console.log('✅ err() works:', errorResult);
+          console.log('✅ isErr() works:', isErr(errorResult));
+
+          console.log('🎉 All tests passed!');
+          EOF
+          node test.js
+
+      # Optional: Track performance over time (requires setup)
+      # - name: Store benchmark results
+      #   uses: benchmark-action/github-action-benchmark@v1
+      #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      #   with:
+      #     tool: 'benchmarkjs'
+      #     output-file-path: benchmark-results.json
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     auto-push: true
