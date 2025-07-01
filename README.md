@@ -1,7 +1,5 @@
 # result-ts
 
-The performance-first Result library for TypeScript with comprehensive utilities and zero overhead.
-
 <center>
 
 [![npm version](https://badge.fury.io/js/result-ts.svg)](https://www.npmjs.com/package/result-ts)
@@ -11,15 +9,23 @@ The performance-first Result library for TypeScript with comprehensive utilities
 
 </center>
 
+**This is a pre-release library.**
+
+The performance-first Result library for TypeScript with comprehensive utilities
+and zero overhead.
+
 ## What is result-ts?
 
-result-ts brings Rust-style error handling to TypeScript with a focus on **performance**, **type safety**, and **developer experience**. It provides a comprehensive toolkit for handling operations that might fail, making error handling explicit and composable.
+Rust-style error handling to TypeScript with a focus on **performance**, **type safety**,
+and **developer experience**. It provides a comprehensive toolkit for handling operations
+that might fail, making error handling explicit and composable.
 
 ```typescript
 import { ok, err, isOk, handle, match } from "result-ts";
 
 // Transform error-prone operations into safe, composable code
 const userResult = handle(() => JSON.parse(userJson));
+
 const message = match(userResult, {
   Ok: (user) => `Welcome, ${user.name}!`,
   Err: (error) => `Invalid data: ${error.message}`,
@@ -75,6 +81,7 @@ import { handle, handleAsync } from "result-ts";
 
 // Synchronous operations
 const parseResult = handle(() => JSON.parse(jsonString));
+
 if (isOk(parseResult)) {
   console.log("Parsed:", parseResult.value);
 } else {
@@ -83,8 +90,10 @@ if (isOk(parseResult)) {
 
 // Asynchronous operations
 const apiResult = await handleAsync(async () => {
+
   const response = await fetch("/api/users");
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
   return response.json();
 });
 ```
@@ -217,7 +226,8 @@ const userResult = fromNullable(
 const email = toNullable(getUserEmail(id))?.toLowerCase();
 ```
 
-**When to use**: Debugging workflows, logging, caching, integrating with nullable APIs.
+**When to use**: Debugging workflows, logging, caching, integrating with nullable
+APIs.
 
 ### Advanced Patterns (`result-ts/patterns`)
 
@@ -235,8 +245,7 @@ const userWithProfile = await safe(async function* () {
 });
 
 // Combine multiple Results
-const combined = zip(validateEmail(email), validatePhone(phone));
-// Result<[string, string], ValidationError>
+const combined = zip(validateEmail(email), validatePhone(phone)); // Result<[string, string], ValidationError>
 
 // Applicative patterns
 const createUser = ok((name: string) => (email: string) => ({ name, email }));
@@ -249,7 +258,8 @@ const processed = chain(getUserById(1))
   .run();
 ```
 
-**When to use**: Complex error handling flows, combining multiple Results, functional composition.
+**When to use**: Complex error handling flows, combining multiple Results, functional
+composition.
 
 ### Schema Validation (`result-ts/schema`)
 
@@ -298,7 +308,8 @@ const result = validateWith(formData, FormSchema, (zodError) => ({
 }));
 ```
 
-**When to use**: API validation, form processing, configuration parsing, type-safe data validation.
+**When to use**: API validation, form processing, configuration parsing, type-safe
+data validation.
 
 ## Real-World Examples
 
@@ -533,6 +544,7 @@ return users;
 ```typescript
 // result-ts preserves error information
 const result = parseNumber("abc"); // Result<number, string>
+
 // vs. Option<number> - loses information about why it failed
 
 match(result, {
@@ -575,9 +587,9 @@ const user = await pipe(
 - **Performance**: No stack unwinding overhead
 - **Exhaustive**: TypeScript ensures you handle both cases
 
-## Architecture & Bundle Sizes
+## Progressive Enhancement Architecture & Bundle Sizes
 
-result-ts uses a **progressive enhancement** architecture. Start with core essentials and add layers as needed:
+Start with core essentials and add layers as needed:
 
 | Layer                                          | Functions              | Bundle Size      | Use Case                              |
 | ---------------------------------------------- | ---------------------- | ---------------- | ------------------------------------- |
@@ -622,27 +634,36 @@ import { safe, zip } from "result-ts/patterns";
 
 **Q: When should I use result-ts vs exceptions?**
 
-A: Use result-ts for expected errors (validation, network calls, parsing) and exceptions for unexpected errors (programming bugs, out-of-memory).
+A: Use result-ts for expected errors (validation, network calls, parsing) and exceptions
+for unexpected errors (programming bugs, out-of-memory).
 
 **Q: How does this affect bundle size?**
 
-A: result-ts is designed for tree-shaking. Import only what you need - basic usage adds ~107 bytes.
+A: result-ts is designed for tree-shaking. Import only what you need -
+basic usage adds ~120 bytes.
 
 **Q: Can I mix result-ts with async/await?**
 
-A: Yes! Use `handleAsync()` to convert Promise-based APIs and `safe()` for complex async flows.
+A: Yes! Use `handleAsync()` to convert Promise-based APIs and
+`safe()` for complex async flows.
 
 **Q: Do I need to use all modules?**
 
-A: No. Start with core (`result-ts`) and add modules as needed. Each module includes all previous functionality.
+A: No. Start with core (`result-ts`) and add modules as needed.
+Each module includes all previous functionality.
 
 **Q: How does performance compare to try-catch?**
 
-A: Similar or better for success cases, significantly better for error cases (no stack unwinding).
+A: Similar or better for success cases, significantly better for
+error cases (no stack unwinding).
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+This is a solo project for now but could be open to contribution. Reach out if you
+are interested. Contribution documents and publishing are in the works once the
+API stabilizes.
+
+[//]: <> (We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines)
 
 ## License
 
