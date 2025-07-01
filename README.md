@@ -591,14 +591,14 @@ const user = await pipe(
 
 Start with core essentials and add layers as needed:
 
-| Layer                                          | Functions              | Bundle Size      | Use Case                              |
-| ---------------------------------------------- | ---------------------- | ---------------- | ------------------------------------- |
-| **Core** (`result-ts`)                         | 11 essential functions | ~55-331 bytes    | Basic Result handling, safe execution |
-| **+ Data Transform** (`result-ts/iter`)        | +4 functions           | ~778 bytes total | Value mapping, operation chaining     |
-| **+ Array Processing** (`result-ts/batch`)     | +10 functions          | ~935 bytes total | Bulk operations, statistics           |
-| **+ Debugging** (`result-ts/utils`)            | +5 functions           | Similar to core  | Side effects, nullable conversion     |
-| **+ Advanced Patterns** (`result-ts/patterns`) | +7 functions           | ~974 bytes total | Generators, applicative patterns      |
-| **+ Validation** (`result-ts/schema`)          | +12 functions          | ~245 bytes\*     | Runtime validation with Zod           |
+| Layer                                          | Functions              | Bundle Size       | Use Case                              |
+| ---------------------------------------------- | ---------------------- | ----------------- | ------------------------------------- |
+| **Core** (`result-ts`)                         | 11 essential functions | ~55-331 bytes     | Basic Result handling, safe execution |
+| **+ Data Transform** (`result-ts/iter`)        | +4 functions           | ~778 bytes total  | Value mapping, operation chaining     |
+| **+ Array Processing** (`result-ts/batch`)     | +10 functions          | ~1113 bytes total | Bulk operations, statistics           |
+| **+ Debugging** (`result-ts/utils`)            | +5 functions           | Similar to core   | Side effects, nullable conversion     |
+| **+ Advanced Patterns** (`result-ts/patterns`) | +7 functions           | ~1252 bytes total | Generators, applicative patterns      |
+| **+ Validation** (`result-ts/schema`)          | +12 functions          | ~556 bytes\*      | Runtime validation with Zod           |
 
 \*Excludes Zod dependency (~13KB gzipped)
 
@@ -618,12 +618,12 @@ import { ok, err, handle, match } from "result-ts";
 import { ok, err, handle, match } from "result-ts";
 import { map, andThen } from "result-ts/iter";
 
-// Array processing - 935 bytes
+// Array processing - 1113 bytes
 import { ok, err, handle, match } from "result-ts";
 import { map, andThen } from "result-ts/iter";
 import { all, partition } from "result-ts/batch";
 
-// Advanced patterns - 974 bytes
+// Advanced patterns - 1252 bytes
 import { ok, err, handle, match } from "result-ts";
 import { map, andThen } from "result-ts/iter";
 import { all, partition } from "result-ts/batch";
