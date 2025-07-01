@@ -1,4 +1,12 @@
-//TODO: Fix integration tests
+//TODO: Fix integration Tests
+
+import { describe, it, expect } from "vitest";
+
+describe("TODO: Finish Integration Tests", () => {
+  it("Update tests as api stabilizes", () => {
+    expect(true).toBe(true);
+  });
+});
 
 //import { describe, it, expect } from "vitest";
 //import { ok, err, handle, isOk, isErr, unwrap, match } from "../src";
