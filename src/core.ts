@@ -1,6 +1,6 @@
 // Internal core module - not exposed to users
 
-import { OK, ERR, type Result, type Ok, type Err } from "./types";
+import { ERR, type Err, OK, type Ok, type Result } from "./types";
 
 // =============================================================================
 // CORE ESSENTIALS (Individual Exports)
@@ -22,8 +22,8 @@ import { OK, ERR, type Result, type Ok, type Err } from "./types";
  * @see {@link isOk} for checking if a Result is successful
  */
 export const ok = <T>(value: T): Ok<T> => ({
-  type: OK,
-  value,
+	type: OK,
+	value,
 });
 
 /**
@@ -45,8 +45,8 @@ export const ok = <T>(value: T): Ok<T> => ({
  * @see {@link isErr} for checking if a Result is an error
  */
 export const err = <E>(error: E): Err<E> => ({
-  type: ERR,
-  error,
+	type: ERR,
+	error,
 });
 
 /**
@@ -67,7 +67,7 @@ export const err = <E>(error: E): Err<E> => ({
  * @see {@link match} for pattern matching on Results
  */
 export const isOk = <T, E>(result: Result<T, E>): result is Ok<T> =>
-  result.type === OK;
+	result.type === OK;
 
 /**
  * Type guard that checks if a Result is an error.
@@ -87,7 +87,7 @@ export const isOk = <T, E>(result: Result<T, E>): result is Ok<T> =>
  * @see {@link match} for pattern matching on Results
  */
 export const isErr = <T, E>(result: Result<T, E>): result is Err<E> =>
-  result.type === ERR;
+	result.type === ERR;
 
 /**
  * Extracts the value from a successful Result or throws an error.
@@ -119,37 +119,43 @@ export const isErr = <T, E>(result: Result<T, E>): result is Err<E> =>
  * @see {@link match} for non-throwing Result handling
  */
 export function unwrap<T, E extends Record<string, unknown> | string | Error>(
-  result: Result<T, E>,
+	result: Result<T, E>,
 ): T;
 export function unwrap<T, E>(result: Result<T, E>): T;
 export function unwrap<T, E>(result: Result<T, E>): T {
-  if (!result || typeof result !== "object") {
-    throw new TypeError("Argument must be a Result object");
-  }
+	if (!result || typeof result !== "object") {
+		throw new TypeError("Argument must be a Result object");
+	}
 
-  const resultObj = result as any;
-  if (!("type" in resultObj) || (resultObj.type !== OK && resultObj.type !== ERR)) {
-    throw new TypeError(
-      `Invalid Result: expected object with type '${OK}' or '${ERR}'`,
-    );
-  }
+	const resultObj = result as unknown;
+	if (
+		typeof resultObj !== "object" ||
+		resultObj === null ||
+		!("type" in resultObj) ||
+		((resultObj as Record<string, unknown>).type !== OK &&
+			(resultObj as Record<string, unknown>).type !== ERR)
+	) {
+		throw new TypeError(
+			`Invalid Result: expected object with type '${OK}' or '${ERR}'`,
+		);
+	}
 
-  if (result.type === OK) return result.value;
+	if (result.type === OK) return result.value;
 
-  const error = result.error;
+	const error = result.error;
 
-  // Most common case with default E = Error
-  if (error instanceof Error) {
-    throw error;
-  }
+	// Most common case with default E = Error
+	if (error instanceof Error) {
+		throw error;
+	}
 
-  // Handle string errors
-  if (typeof error === "string") {
-    throw new Error(error);
-  }
+	// Handle string errors
+	if (typeof error === "string") {
+		throw new Error(error);
+	}
 
-  // Handle all other error types - preserve original in cause
-  throw new Error(`Unwrap failed: ${String(error)}`, { cause: error });
+	// Handle all other error types - preserve original in cause
+	throw new Error(`Unwrap failed: ${String(error)}`, { cause: error });
 }
 
 /**
@@ -179,24 +185,27 @@ export function unwrap<T, E>(result: Result<T, E>): T {
  * @see {@link match} for custom handling of both cases
  */
 export function unwrapOr<T, E extends Record<string, unknown> | string | Error>(
-  result: Result<T, E>,
-  defaultValue: T,
+	result: Result<T, E>,
+	defaultValue: T,
 ): T;
 export function unwrapOr<T, E>(result: Result<T, E>, defaultValue: T): T;
 export function unwrapOr<T, E>(result: Result<T, E>, defaultValue: T): T {
-  if (!result || typeof result !== "object") {
-    throw new TypeError("First argument must be a Result object");
-  }
-  const resultObj = result as any;
-  if (
-    !("type" in resultObj) ||
-    (resultObj.type !== OK && resultObj.type !== ERR)
-  ) {
-    throw new TypeError(
-      `Invalid Result: expected object with type '${OK}' or '${ERR}'`,
-    );
-  }
-  return result.type === OK ? result.value : defaultValue;
+	if (!result || typeof result !== "object") {
+		throw new TypeError("First argument must be a Result object");
+	}
+	const resultObj = result as unknown;
+	if (
+		typeof resultObj !== "object" ||
+		resultObj === null ||
+		!("type" in resultObj) ||
+		((resultObj as Record<string, unknown>).type !== OK &&
+			(resultObj as Record<string, unknown>).type !== ERR)
+	) {
+		throw new TypeError(
+			`Invalid Result: expected object with type '${OK}' or '${ERR}'`,
+		);
+	}
+	return result.type === OK ? result.value : defaultValue;
 }
 
 /**
@@ -222,23 +231,23 @@ export function unwrapOr<T, E>(result: Result<T, E>, defaultValue: T): T {
  * @see {@link handleWith} for custom error mapping
  */
 export const handle = <T>(fn: () => T): Result<T, Error> => {
-  try {
-    return { type: OK, value: fn() };
-  } catch (thrown) {
-    if (thrown instanceof Error) {
-      return { type: ERR, error: thrown };
-    }
+	try {
+		return { type: OK, value: fn() };
+	} catch (thrown) {
+		if (thrown instanceof Error) {
+			return { type: ERR, error: thrown };
+		}
 
-    if (typeof thrown === "string") {
-      return { type: ERR, error: new Error(thrown) };
-    }
+		if (typeof thrown === "string") {
+			return { type: ERR, error: new Error(thrown) };
+		}
 
-    // For non-Error, non-string throws, wrap and preserve original
-    const error = new Error(`Caught non-Error value: ${String(thrown)}`, {
-      cause: thrown,
-    });
-    return { type: ERR, error };
-  }
+		// For non-Error, non-string throws, wrap and preserve original
+		const error = new Error(`Caught non-Error value: ${String(thrown)}`, {
+			cause: thrown,
+		});
+		return { type: ERR, error };
+	}
 };
 
 /**
@@ -266,26 +275,26 @@ export const handle = <T>(fn: () => T): Result<T, Error> => {
  * @see {@link handleWithAsync} for custom error mapping
  */
 export const handleAsync = async <T>(
-  fn: () => Promise<T>,
+	fn: () => Promise<T>,
 ): Promise<Result<T, Error>> => {
-  try {
-    const value = await fn();
-    return { type: OK, value };
-  } catch (thrown) {
-    if (thrown instanceof Error) {
-      return { type: ERR, error: thrown };
-    }
+	try {
+		const value = await fn();
+		return { type: OK, value };
+	} catch (thrown) {
+		if (thrown instanceof Error) {
+			return { type: ERR, error: thrown };
+		}
 
-    if (typeof thrown === "string") {
-      return { type: ERR, error: new Error(thrown) };
-    }
+		if (typeof thrown === "string") {
+			return { type: ERR, error: new Error(thrown) };
+		}
 
-    // For non-Error, non-string throws, wrap and preserve original
-    const error = new Error(`Caught non-Error value: ${String(thrown)}`, {
-      cause: thrown,
-    });
-    return { type: ERR, error };
-  }
+		// For non-Error, non-string throws, wrap and preserve original
+		const error = new Error(`Caught non-Error value: ${String(thrown)}`, {
+			cause: thrown,
+		});
+		return { type: ERR, error };
+	}
 };
 
 /**
@@ -317,29 +326,29 @@ export const handleAsync = async <T>(
  * @see {@link handleWithAsync} for async version
  */
 export const handleWith = <
-  T,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	E extends Record<string, unknown> | string | Error,
 >(
-  fn: () => T,
-  errorMapper: (error: Error) => E,
+	fn: () => T,
+	errorMapper: (error: Error) => E,
 ): Result<T, E> => {
-  try {
-    return { type: OK, value: fn() };
-  } catch (thrown) {
-    let error: Error;
+	try {
+		return { type: OK, value: fn() };
+	} catch (thrown) {
+		let error: Error;
 
-    if (thrown instanceof Error) {
-      error = thrown;
-    } else if (typeof thrown === "string") {
-      error = new Error(thrown);
-    } else {
-      error = new Error(`Caught non-Error value: ${String(thrown)}`, {
-        cause: thrown,
-      });
-    }
+		if (thrown instanceof Error) {
+			error = thrown;
+		} else if (typeof thrown === "string") {
+			error = new Error(thrown);
+		} else {
+			error = new Error(`Caught non-Error value: ${String(thrown)}`, {
+				cause: thrown,
+			});
+		}
 
-    return { type: ERR, error: errorMapper(error) };
-  }
+		return { type: ERR, error: errorMapper(error) };
+	}
 };
 
 /**
@@ -377,30 +386,30 @@ export const handleWith = <
  * @see {@link handleAsync} for standard Error handling
  */
 export const handleWithAsync = async <
-  T,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	E extends Record<string, unknown> | string | Error,
 >(
-  fn: () => Promise<T>,
-  errorMapper: (error: Error) => E,
+	fn: () => Promise<T>,
+	errorMapper: (error: Error) => E,
 ): Promise<Result<T, E>> => {
-  try {
-    const value = await fn();
-    return { type: OK, value };
-  } catch (thrown) {
-    let error: Error;
+	try {
+		const value = await fn();
+		return { type: OK, value };
+	} catch (thrown) {
+		let error: Error;
 
-    if (thrown instanceof Error) {
-      error = thrown;
-    } else if (typeof thrown === "string") {
-      error = new Error(thrown);
-    } else {
-      error = new Error(`Caught non-Error value: ${String(thrown)}`, {
-        cause: thrown,
-      });
-    }
+		if (thrown instanceof Error) {
+			error = thrown;
+		} else if (typeof thrown === "string") {
+			error = new Error(thrown);
+		} else {
+			error = new Error(`Caught non-Error value: ${String(thrown)}`, {
+				cause: thrown,
+			});
+		}
 
-    return { type: ERR, error: errorMapper(error) };
-  }
+		return { type: ERR, error: errorMapper(error) };
+	}
 };
 
 /**
@@ -439,71 +448,74 @@ export const handleWithAsync = async <
  * @see {@link unwrap} and {@link unwrapOr} for value extraction
  */
 export function match<T, E extends Record<string, unknown> | string | Error, R>(
-  result: Result<T, E>,
-  handlers: {
-    Ok: (value: T) => R;
-    Err: (error: E) => R;
-  },
+	result: Result<T, E>,
+	handlers: {
+		Ok: (value: T) => R;
+		Err: (error: E) => R;
+	},
 ): R;
 export function match<
-  T,
-  U,
-  V,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	U,
+	V,
+	E extends Record<string, unknown> | string | Error,
 >(
-  result: Result<T, E>,
-  handlers: {
-    Ok: (value: T) => U;
-    Err: (error: E) => V;
-  },
+	result: Result<T, E>,
+	handlers: {
+		Ok: (value: T) => U;
+		Err: (error: E) => V;
+	},
 ): U | V;
 export function match<T, E, R>(
-  result: Result<T, E>,
-  handlers: {
-    Ok: (value: T) => R;
-    Err: (error: E) => R;
-  },
+	result: Result<T, E>,
+	handlers: {
+		Ok: (value: T) => R;
+		Err: (error: E) => R;
+	},
 ): R;
 export function match<T, U, V, E>(
-  result: Result<T, E>,
-  handlers: {
-    Ok: (value: T) => U;
-    Err: (error: E) => V;
-  },
+	result: Result<T, E>,
+	handlers: {
+		Ok: (value: T) => U;
+		Err: (error: E) => V;
+	},
 ): U | V;
 export function match<T, U, V, E>(
-  result: Result<T, E>,
-  handlers: {
-    Ok: (value: T) => U;
-    Err: (error: E) => V;
-  },
+	result: Result<T, E>,
+	handlers: {
+		Ok: (value: T) => U;
+		Err: (error: E) => V;
+	},
 ): U | V {
-  if (!result || typeof result !== "object") {
-    throw new TypeError("First argument must be a Result object");
-  }
-  const resultObj = result as any;
-  if (
-    !("type" in resultObj) ||
-    (resultObj.type !== OK && resultObj.type !== ERR)
-  ) {
-    throw new TypeError(
-      `Invalid Result: expected object with type '${OK}' or '${ERR}'`,
-    );
-  }
-  if (!handlers || typeof handlers !== "object") {
-    throw new TypeError("Second argument must be a handlers object");
-  }
-  if (typeof handlers.Ok !== "function" || typeof handlers.Err !== "function") {
-    throw new TypeError("Handlers must have Ok and Err functions");
-  }
+	if (!result || typeof result !== "object") {
+		throw new TypeError("First argument must be a Result object");
+	}
+	const resultObj = result as unknown;
+	if (
+		typeof resultObj !== "object" ||
+		resultObj === null ||
+		!("type" in resultObj) ||
+		((resultObj as Record<string, unknown>).type !== OK &&
+			(resultObj as Record<string, unknown>).type !== ERR)
+	) {
+		throw new TypeError(
+			`Invalid Result: expected object with type '${OK}' or '${ERR}'`,
+		);
+	}
+	if (!handlers || typeof handlers !== "object") {
+		throw new TypeError("Second argument must be a handlers object");
+	}
+	if (typeof handlers.Ok !== "function" || typeof handlers.Err !== "function") {
+		throw new TypeError("Handlers must have Ok and Err functions");
+	}
 
-  return result.type === OK
-    ? handlers.Ok(result.value)
-    : handlers.Err(result.error);
+	return result.type === OK
+		? handlers.Ok(result.value)
+		: handlers.Err(result.error);
 }
 
 // Re-export types for layer files that import from core
-export type { Result, Ok, Err } from "./types";
+export type { Err, Ok, Result } from "./types";
 
 /**
  * This module defines the core essentials (11 functions) included in every layer.

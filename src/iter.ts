@@ -5,7 +5,7 @@
 export * from "@/core";
 
 // Import types and constants for iteration implementations
-import { OK, ERR, type Result } from "@/types";
+import { ERR, OK, type Result } from "@/types";
 
 // =============================================================================
 // RUNTIME VALIDATION HELPERS
@@ -16,66 +16,73 @@ import { OK, ERR, type Result } from "@/types";
  * Provides helpful error messages for common mistakes.
  */
 const validateResult = <T, E>(
-  result: Result<T, E>,
-  functionName: string,
+	result: Result<T, E>,
+	functionName: string,
 ): void => {
-  if (!result || typeof result !== "object") {
-    throw new TypeError(
-      `${functionName}: First argument must be a Result object, got ${typeof result}`,
-    );
-  }
-  const resultObj = result as any;
-  if (!("type" in resultObj)) {
-    throw new TypeError(
-      `${functionName}: Result must have a 'type' property (Ok or Err)`,
-    );
-  }
-  if (resultObj.type !== OK && resultObj.type !== ERR) {
-    throw new TypeError(
-      `${functionName}: Invalid Result type '${resultObj.type}', expected '${OK}' or '${ERR}'`,
-    );
-  }
-  if (resultObj.type === OK && !("value" in resultObj)) {
-    throw new TypeError(
-      `${functionName}: Ok Result must have a 'value' property`,
-    );
-  }
-  if (resultObj.type === ERR && !("error" in resultObj)) {
-    throw new TypeError(
-      `${functionName}: Err Result must have an 'error' property`,
-    );
-  }
+	if (!result || typeof result !== "object") {
+		throw new TypeError(
+			`${functionName}: First argument must be a Result object, got ${typeof result}`,
+		);
+	}
+	const resultObj = result as unknown;
+	if (
+		typeof resultObj !== "object" ||
+		resultObj === null ||
+		!("type" in resultObj)
+	) {
+		throw new TypeError(
+			`${functionName}: Result must have a 'type' property (Ok or Err)`,
+		);
+	}
+	if (
+		(resultObj as Record<string, unknown>).type !== OK &&
+		(resultObj as Record<string, unknown>).type !== ERR
+	) {
+		throw new TypeError(
+			`${functionName}: Invalid Result type '${resultObj.type}', expected '${OK}' or '${ERR}'`,
+		);
+	}
+	if (resultObj.type === OK && !("value" in resultObj)) {
+		throw new TypeError(
+			`${functionName}: Ok Result must have a 'value' property`,
+		);
+	}
+	if (resultObj.type === ERR && !("error" in resultObj)) {
+		throw new TypeError(
+			`${functionName}: Err Result must have an 'error' property`,
+		);
+	}
 };
 
 /**
  * Validates that a mapper parameter is a function.
  */
 const validateMapper = (
-  mapper: unknown,
-  functionName: string,
-  parameterName: string = "mapper",
+	mapper: unknown,
+	functionName: string,
+	parameterName: string = "mapper",
 ): void => {
-  if (typeof mapper !== "function") {
-    throw new TypeError(
-      `${functionName}: ${parameterName} must be a function, got ${typeof mapper}`,
-    );
-  }
+	if (typeof mapper !== "function") {
+		throw new TypeError(
+			`${functionName}: ${parameterName} must be a function, got ${typeof mapper}`,
+		);
+	}
 };
 
 /**
  * Validates that a promise parameter is actually a Promise.
  */
 const validatePromise = (promise: unknown, functionName: string): void => {
-  if (!promise || typeof promise !== "object" || !("then" in promise)) {
-    throw new TypeError(
-      `${functionName}: First argument must be a Promise<Result>, got ${typeof promise}`,
-    );
-  }
-  if (typeof (promise as any).then !== "function") {
-    throw new TypeError(
-      `${functionName}: First argument must be a Promise (missing 'then' method)`,
-    );
-  }
+	if (!promise || typeof promise !== "object" || !("then" in promise)) {
+		throw new TypeError(
+			`${functionName}: First argument must be a Promise<Result>, got ${typeof promise}`,
+		);
+	}
+	if (typeof (promise as Record<string, unknown>).then !== "function") {
+		throw new TypeError(
+			`${functionName}: First argument must be a Promise (missing 'then' method)`,
+		);
+	}
 };
 
 // =============================================================================
@@ -111,22 +118,22 @@ const validatePromise = (promise: unknown, functionName: string): void => {
  * @see {@link andThen} for chaining operations that return Results
  */
 export function map<T, U, E extends Record<string, unknown> | string | Error>(
-  result: Result<T, E>,
-  mapper: (value: T) => U,
+	result: Result<T, E>,
+	mapper: (value: T) => U,
 ): Result<U, E>;
 export function map<T, U, E>(
-  result: Result<T, E>,
-  mapper: (value: T) => U,
+	result: Result<T, E>,
+	mapper: (value: T) => U,
 ): Result<U, E>;
 export function map<T, U, E>(
-  result: Result<T, E>,
-  mapper: (value: T) => U,
+	result: Result<T, E>,
+	mapper: (value: T) => U,
 ): Result<U, E> {
-  validateResult(result, "map()");
-  validateMapper(mapper, "map()");
-  return result.type === OK
-    ? { type: OK, value: mapper(result.value) }
-    : result;
+	validateResult(result, "map()");
+	validateMapper(mapper, "map()");
+	return result.type === OK
+		? { type: OK, value: mapper(result.value) }
+		: result;
 }
 
 /**
@@ -150,32 +157,32 @@ export function map<T, U, E>(
  * @see {@link andThenAsync} for async chaining
  */
 export function mapAsync<
-  T,
-  U,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	U,
+	E extends Record<string, unknown> | string | Error,
 >(
-  promise: Promise<Result<T, E>>,
-  mapper: (value: T) => U | Promise<U>,
+	promise: Promise<Result<T, E>>,
+	mapper: (value: T) => U | Promise<U>,
 ): Promise<Result<U, E>>;
 export function mapAsync<T, U, E>(
-  promise: Promise<Result<T, E>>,
-  mapper: (value: T) => U | Promise<U>,
+	promise: Promise<Result<T, E>>,
+	mapper: (value: T) => U | Promise<U>,
 ): Promise<Result<U, E>>;
 export async function mapAsync<T, U, E>(
-  promise: Promise<Result<T, E>>,
-  mapper: (value: T) => U | Promise<U>,
+	promise: Promise<Result<T, E>>,
+	mapper: (value: T) => U | Promise<U>,
 ): Promise<Result<U, E>> {
-  validatePromise(promise, "mapAsync()");
-  validateMapper(mapper, "mapAsync()");
+	validatePromise(promise, "mapAsync()");
+	validateMapper(mapper, "mapAsync()");
 
-  const result = await promise;
-  validateResult(result, "mapAsync()");
+	const result = await promise;
+	validateResult(result, "mapAsync()");
 
-  if (result.type === OK) {
-    const mapped = await mapper(result.value);
-    return { type: OK, value: mapped };
-  }
-  return result;
+	if (result.type === OK) {
+		const mapped = await mapper(result.value);
+		return { type: OK, value: mapped };
+	}
+	return result;
 }
 
 /**
@@ -205,23 +212,23 @@ export async function mapAsync<T, U, E>(
  * @see {@link map} for value transformations
  */
 export function mapErr<
-  T,
-  E extends Record<string, unknown> | string | Error,
-  F,
+	T,
+	E extends Record<string, unknown> | string | Error,
+	F,
 >(result: Result<T, E>, mapper: (error: E) => F): Result<T, F>;
 export function mapErr<T, E, F>(
-  result: Result<T, E>,
-  mapper: (error: E) => F,
+	result: Result<T, E>,
+	mapper: (error: E) => F,
 ): Result<T, F>;
 export function mapErr<T, E, F>(
-  result: Result<T, E>,
-  mapper: (error: E) => F,
+	result: Result<T, E>,
+	mapper: (error: E) => F,
 ): Result<T, F> {
-  validateResult(result, "mapErr()");
-  validateMapper(mapper, "mapErr()");
-  return result.type === ERR
-    ? { type: ERR, error: mapper(result.error) }
-    : result;
+	validateResult(result, "mapErr()");
+	validateMapper(mapper, "mapErr()");
+	return result.type === ERR
+		? { type: ERR, error: mapper(result.error) }
+		: result;
 }
 
 /**
@@ -244,32 +251,32 @@ export function mapErr<T, E, F>(
  * @see {@link mapAsync} for value transformations
  */
 export function mapErrAsync<
-  T,
-  E extends Record<string, unknown> | string | Error,
-  F,
+	T,
+	E extends Record<string, unknown> | string | Error,
+	F,
 >(
-  promise: Promise<Result<T, E>>,
-  mapper: (error: E) => F | Promise<F>,
+	promise: Promise<Result<T, E>>,
+	mapper: (error: E) => F | Promise<F>,
 ): Promise<Result<T, F>>;
 export function mapErrAsync<T, E, F>(
-  promise: Promise<Result<T, E>>,
-  mapper: (error: E) => F | Promise<F>,
+	promise: Promise<Result<T, E>>,
+	mapper: (error: E) => F | Promise<F>,
 ): Promise<Result<T, F>>;
 export async function mapErrAsync<T, E, F>(
-  promise: Promise<Result<T, E>>,
-  mapper: (error: E) => F | Promise<F>,
+	promise: Promise<Result<T, E>>,
+	mapper: (error: E) => F | Promise<F>,
 ): Promise<Result<T, F>> {
-  validatePromise(promise, "mapErrAsync()");
-  validateMapper(mapper, "mapErrAsync()");
+	validatePromise(promise, "mapErrAsync()");
+	validateMapper(mapper, "mapErrAsync()");
 
-  const result = await promise;
-  validateResult(result, "mapErrAsync()");
+	const result = await promise;
+	validateResult(result, "mapErrAsync()");
 
-  if (result.type === ERR) {
-    const mapped = await mapper(result.error);
-    return { type: ERR, error: mapped };
-  }
-  return result;
+	if (result.type === ERR) {
+		const mapped = await mapper(result.error);
+		return { type: ERR, error: mapped };
+	}
+	return result;
 }
 
 /**
@@ -303,21 +310,21 @@ export async function mapErrAsync<T, E, F>(
  * @see {@link map} for simple transformations
  */
 export function andThen<
-  T,
-  U,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	U,
+	E extends Record<string, unknown> | string | Error,
 >(result: Result<T, E>, mapper: (value: T) => Result<U, E>): Result<U, E>;
 export function andThen<T, U, E>(
-  result: Result<T, E>,
-  mapper: (value: T) => Result<U, E>,
+	result: Result<T, E>,
+	mapper: (value: T) => Result<U, E>,
 ): Result<U, E>;
 export function andThen<T, U, E>(
-  result: Result<T, E>,
-  mapper: (value: T) => Result<U, E>,
+	result: Result<T, E>,
+	mapper: (value: T) => Result<U, E>,
 ): Result<U, E> {
-  validateResult(result, "andThen()");
-  validateMapper(mapper, "andThen()");
-  return result.type === OK ? mapper(result.value) : result;
+	validateResult(result, "andThen()");
+	validateMapper(mapper, "andThen()");
+	return result.type === OK ? mapper(result.value) : result;
 }
 
 /**
@@ -340,28 +347,28 @@ export function andThen<T, U, E>(
  * @see {@link mapAsync} for simple async transformations
  */
 export function andThenAsync<
-  T,
-  U,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	U,
+	E extends Record<string, unknown> | string | Error,
 >(
-  promise: Promise<Result<T, E>>,
-  mapper: (value: T) => Promise<Result<U, E>>,
+	promise: Promise<Result<T, E>>,
+	mapper: (value: T) => Promise<Result<U, E>>,
 ): Promise<Result<U, E>>;
 export function andThenAsync<T, U, E>(
-  promise: Promise<Result<T, E>>,
-  mapper: (value: T) => Promise<Result<U, E>>,
+	promise: Promise<Result<T, E>>,
+	mapper: (value: T) => Promise<Result<U, E>>,
 ): Promise<Result<U, E>>;
 export async function andThenAsync<T, U, E>(
-  promise: Promise<Result<T, E>>,
-  mapper: (value: T) => Promise<Result<U, E>>,
+	promise: Promise<Result<T, E>>,
+	mapper: (value: T) => Promise<Result<U, E>>,
 ): Promise<Result<U, E>> {
-  validatePromise(promise, "andThenAsync()");
-  validateMapper(mapper, "andThenAsync()");
+	validatePromise(promise, "andThenAsync()");
+	validateMapper(mapper, "andThenAsync()");
 
-  const result = await promise;
-  validateResult(result, "andThenAsync()");
+	const result = await promise;
+	validateResult(result, "andThenAsync()");
 
-  return result.type === OK ? await mapper(result.value) : result;
+	return result.type === OK ? await mapper(result.value) : result;
 }
 
 /**

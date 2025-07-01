@@ -5,7 +5,7 @@
 export * from "@/core";
 
 // Import types and constants for patterns implementations
-import { OK, ERR, type Result } from "@/types";
+import { ERR, OK, type Result } from "@/types";
 
 // =============================================================================
 // RUNTIME VALIDATION HELPERS
@@ -16,65 +16,72 @@ import { OK, ERR, type Result } from "@/types";
  * Provides helpful error messages for common mistakes.
  */
 const validateResult = <T, E>(
-  result: Result<T, E>,
-  functionName: string,
-  parameterName: string = "result",
+	result: Result<T, E>,
+	functionName: string,
+	parameterName: string = "result",
 ): void => {
-  if (!result || typeof result !== "object") {
-    throw new TypeError(
-      `${functionName}: ${parameterName} must be a Result object, got ${typeof result}`,
-    );
-  }
-  const resultObj = result as any;
-  if (!("type" in resultObj)) {
-    throw new TypeError(
-      `${functionName}: ${parameterName} must have a 'type' property (Ok or Err)`,
-    );
-  }
-  if (resultObj.type !== OK && resultObj.type !== ERR) {
-    throw new TypeError(
-      `${functionName}: Invalid ${parameterName} type '${resultObj.type}', expected '${OK}' or '${ERR}'`,
-    );
-  }
-  if (resultObj.type === OK && !("value" in resultObj)) {
-    throw new TypeError(
-      `${functionName}: Ok ${parameterName} must have a 'value' property`,
-    );
-  }
-  if (resultObj.type === ERR && !("error" in resultObj)) {
-    throw new TypeError(
-      `${functionName}: Err ${parameterName} must have an 'error' property`,
-    );
-  }
+	if (!result || typeof result !== "object") {
+		throw new TypeError(
+			`${functionName}: ${parameterName} must be a Result object, got ${typeof result}`,
+		);
+	}
+	const resultObj = result as unknown;
+	if (
+		typeof resultObj !== "object" ||
+		resultObj === null ||
+		!("type" in resultObj)
+	) {
+		throw new TypeError(
+			`${functionName}: ${parameterName} must have a 'type' property (Ok or Err)`,
+		);
+	}
+	if (
+		(resultObj as Record<string, unknown>).type !== OK &&
+		(resultObj as Record<string, unknown>).type !== ERR
+	) {
+		throw new TypeError(
+			`${functionName}: Invalid ${parameterName} type '${resultObj.type}', expected '${OK}' or '${ERR}'`,
+		);
+	}
+	if (resultObj.type === OK && !("value" in resultObj)) {
+		throw new TypeError(
+			`${functionName}: Ok ${parameterName} must have a 'value' property`,
+		);
+	}
+	if (resultObj.type === ERR && !("error" in resultObj)) {
+		throw new TypeError(
+			`${functionName}: Err ${parameterName} must have an 'error' property`,
+		);
+	}
 };
 
 /**
  * Validates that a generator function parameter is actually a function.
  */
 const validateGeneratorFunction = (
-  generatorFn: unknown,
-  functionName: string,
+	generatorFn: unknown,
+	functionName: string,
 ): void => {
-  if (typeof generatorFn !== "function") {
-    throw new TypeError(
-      `${functionName}: First argument must be a generator function, got ${typeof generatorFn}`,
-    );
-  }
+	if (typeof generatorFn !== "function") {
+		throw new TypeError(
+			`${functionName}: First argument must be a generator function, got ${typeof generatorFn}`,
+		);
+	}
 };
 
 /**
  * Validates that a mapper function parameter is actually a function.
  */
 const validateMapper = (
-  mapper: unknown,
-  functionName: string,
-  parameterName: string = "mapper",
+	mapper: unknown,
+	functionName: string,
+	parameterName: string = "mapper",
 ): void => {
-  if (typeof mapper !== "function") {
-    throw new TypeError(
-      `${functionName}: ${parameterName} must be a function, got ${typeof mapper}`,
-    );
-  }
+	if (typeof mapper !== "function") {
+		throw new TypeError(
+			`${functionName}: ${parameterName} must be a function, got ${typeof mapper}`,
+		);
+	}
 };
 
 // =============================================================================
@@ -102,8 +109,8 @@ const validateMapper = (
  * @returns A properly typed Result for generator contexts
  */
 export const resultOk = <T>(value: T): Result<T, never> => ({
-  type: OK,
-  value,
+	type: OK,
+	value,
 });
 
 /**
@@ -125,8 +132,8 @@ export const resultOk = <T>(value: T): Result<T, never> => ({
  * @returns A properly typed error Result for generator contexts
  */
 export const resultErr = <E>(error: E): Result<never, E> => ({
-  type: ERR,
-  error,
+	type: ERR,
+	error,
 });
 
 /**
@@ -160,27 +167,28 @@ export const resultErr = <E>(error: E): Result<never, E> => ({
  * @throws TypeError if initial is not a valid Result object
  */
 export function chain<T, E extends Record<string, unknown> | string | Error>(
-  initial: Result<T, E>,
+	initial: Result<T, E>,
 ): Chain<T, E>;
 export function chain<T, E>(initial: Result<T, E>): Chain<T, E>;
 export function chain<T, E>(initial: Result<T, E>): Chain<T, E> {
-  validateResult(initial, "chain()", "initial");
+	validateResult(initial, "chain()", "initial");
 
-  return {
-    then: <U>(fn: (value: T) => Result<U, E>): Chain<U, E> => {
-      validateMapper(fn, "chain().then()", "fn");
-      if (initial.type === ERR) {
-        return chain({ type: ERR, error: initial.error });
-      }
-      return chain(fn(initial.value));
-    },
-    run: (): Result<T, E> => initial,
-  };
+	return {
+		// biome-ignore lint/suspicious/noThenProperty: Intentional Promise-like API
+		then: <U>(fn: (value: T) => Result<U, E>): Chain<U, E> => {
+			validateMapper(fn, "chain().then()", "fn");
+			if (initial.type === ERR) {
+				return chain({ type: ERR, error: initial.error });
+			}
+			return chain(fn(initial.value));
+		},
+		run: (): Result<T, E> => initial,
+	};
 }
 
 interface Chain<T, E> {
-  then<U>(fn: (value: T) => Result<U, E>): Chain<U, E>;
-  run(): Result<T, E>;
+	then<U>(fn: (value: T) => Result<U, E>): Chain<U, E>;
+	run(): Result<T, E>;
 }
 
 // =============================================================================
@@ -221,42 +229,44 @@ interface Chain<T, E> {
  * @throws TypeError if generator is not a function
  */
 export function safe<T, E extends Record<string, unknown> | string | Error>(
-  generator: () => Generator<Result<any, E>, T, any>,
+	generator: () => Generator<Result<unknown, E>, T, unknown>,
 ): Result<T, E>;
 export function safe<T, E>(
-  generator: () => Generator<Result<any, E>, T, any>,
+	generator: () => Generator<Result<unknown, E>, T, unknown>,
 ): Result<T, E>;
 export function safe<T, E>(
-  generator: () => Generator<Result<any, E>, T, any>,
+	generator: () => Generator<Result<unknown, E>, T, unknown>,
 ): Result<T, E> {
-  validateGeneratorFunction(generator, "safe()");
+	validateGeneratorFunction(generator, "safe()");
 
-  const gen = generator();
-  try {
-    let current = gen.next();
-    while (!current.done) {
-      const result = current.value as Result<any, E>;
-      // Validate each yielded Result
-      validateResult(result, "safe()", "yielded result");
-      if (result.type === ERR) {
-        try {
-          gen.return(undefined as any);
-        } catch {
-          // Just ignore cleanup errors
-        }
-        return { type: ERR, error: result.error };
-      }
-      current = gen.next(result.value);
-    }
-    return { type: OK, value: current.value };
-  } catch (error) {
-    try {
-      gen.return(undefined as any);
-    } catch {
-      // intentionally ignore errors
-    }
-    throw error;
-  }
+	const gen = generator();
+	try {
+		let current = gen.next();
+		while (!current.done) {
+			const result = current.value as Result<unknown, E>;
+			// Validate each yielded Result
+			validateResult(result, "safe()", "yielded result");
+			if (result.type === ERR) {
+				try {
+					// biome-ignore lint/suspicious/noExplicitAny: Required for generator cleanup
+					gen.return(undefined as any);
+				} catch {
+					// Just ignore cleanup errors
+				}
+				return { type: ERR, error: result.error };
+			}
+			current = gen.next(result.value);
+		}
+		return { type: OK, value: current.value };
+	} catch (error) {
+		try {
+			// biome-ignore lint/suspicious/noExplicitAny: Required for generator cleanup
+			gen.return(undefined as any);
+		} catch {
+			// intentionally ignore errors
+		}
+		throw error;
+	}
 }
 
 /**
@@ -290,45 +300,47 @@ export function safe<T, E>(
  * @throws TypeError if generator is not a function
  */
 export function safeAsync<
-  T,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	E extends Record<string, unknown> | string | Error,
 >(
-  generator: () => AsyncGenerator<Result<any, E>, T, any>,
+	generator: () => AsyncGenerator<Result<unknown, E>, T, unknown>,
 ): Promise<Result<T, E>>;
 export function safeAsync<T, E>(
-  generator: () => AsyncGenerator<Result<any, E>, T, any>,
+	generator: () => AsyncGenerator<Result<unknown, E>, T, unknown>,
 ): Promise<Result<T, E>>;
 export async function safeAsync<T, E>(
-  generator: () => AsyncGenerator<Result<any, E>, T, any>,
+	generator: () => AsyncGenerator<Result<unknown, E>, T, unknown>,
 ): Promise<Result<T, E>> {
-  validateGeneratorFunction(generator, "safeAsync()");
+	validateGeneratorFunction(generator, "safeAsync()");
 
-  const gen = generator();
-  try {
-    let current = await gen.next();
-    while (!current.done) {
-      const result = current.value as Result<any, E>;
-      // Validate each yielded Result
-      validateResult(result, "safeAsync()", "yielded result");
-      if (result.type === ERR) {
-        try {
-          await gen.return(undefined as any);
-        } catch {
-          // Just ignore cleanup errors
-        }
-        return { type: ERR, error: result.error };
-      }
-      current = await gen.next(result.value);
-    }
-    return { type: OK, value: current.value };
-  } catch (error) {
-    try {
-      await gen.return(undefined as any);
-    } catch {
-      // Just ignore cleanup errors
-    }
-    throw error;
-  }
+	const gen = generator();
+	try {
+		let current = await gen.next();
+		while (!current.done) {
+			const result = current.value as Result<unknown, E>;
+			// Validate each yielded Result
+			validateResult(result, "safeAsync()", "yielded result");
+			if (result.type === ERR) {
+				try {
+					// biome-ignore lint/suspicious/noExplicitAny: Required for generator cleanup
+					await gen.return(undefined as any);
+				} catch {
+					// Just ignore cleanup errors
+				}
+				return { type: ERR, error: result.error };
+			}
+			current = await gen.next(result.value);
+		}
+		return { type: OK, value: current.value };
+	} catch (error) {
+		try {
+			// biome-ignore lint/suspicious/noExplicitAny: Required for generator cleanup
+			await gen.return(undefined as any);
+		} catch {
+			// Just ignore cleanup errors
+		}
+		throw error;
+	}
 }
 
 /**
@@ -352,12 +364,12 @@ export async function safeAsync<T, E>(
  * @throws TypeError if result is not a valid Result object
  */
 export function yieldFn<T, E extends Record<string, unknown> | string | Error>(
-  result: Result<T, E>,
+	result: Result<T, E>,
 ): Result<T, E>;
 export function yieldFn<T, E>(result: Result<T, E>): Result<T, E>;
 export function yieldFn<T, E>(result: Result<T, E>): Result<T, E> {
-  validateResult(result, "yieldFn()");
-  return result;
+	validateResult(result, "yieldFn()");
+	return result;
 }
 
 /**
@@ -395,33 +407,33 @@ export function yieldFn<T, E>(result: Result<T, E>): Result<T, E> {
  * @throws TypeError if either result is not a valid Result object
  */
 export function zip<T, U, E extends Record<string, unknown> | string | Error>(
-  resultA: Result<T, E>,
-  resultB: Result<U, E>,
+	resultA: Result<T, E>,
+	resultB: Result<U, E>,
 ): Result<[T, U], E>;
 export function zip<T, U, E>(
-  resultA: Result<T, E>,
-  resultB: Result<U, E>,
+	resultA: Result<T, E>,
+	resultB: Result<U, E>,
 ): Result<[T, U], E>;
 export function zip<T, U, E>(
-  resultA: Result<T, E>,
-  resultB: Result<U, E>,
+	resultA: Result<T, E>,
+	resultB: Result<U, E>,
 ): Result<[T, U], E> {
-  validateResult(resultA, "zip()", "resultA");
-  validateResult(resultB, "zip()", "resultB");
+	validateResult(resultA, "zip()", "resultA");
+	validateResult(resultB, "zip()", "resultB");
 
-  if (resultA.type === OK && resultB.type === OK) {
-    return { type: OK, value: [resultA.value, resultB.value] };
-  }
+	if (resultA.type === OK && resultB.type === OK) {
+		return { type: OK, value: [resultA.value, resultB.value] };
+	}
 
-  if (resultA.type === ERR) {
-    return { type: ERR, error: resultA.error };
-  }
+	if (resultA.type === ERR) {
+		return { type: ERR, error: resultA.error };
+	}
 
-  if (resultB.type === ERR) {
-    return { type: ERR, error: resultB.error };
-  }
+	if (resultB.type === ERR) {
+		return { type: ERR, error: resultB.error };
+	}
 
-  throw new Error("Unreachable: both results cannot be Ok here");
+	throw new Error("Unreachable: both results cannot be Ok here");
 }
 
 /**
@@ -472,38 +484,43 @@ export function zip<T, U, E>(
  * @see {@link zip} for simple tuple combination without transformation
  * @see {@link apply} for applicative functor patterns
  */
-export function zipWith<T, U, V, E extends Record<string, unknown> | string | Error>(
-  resultA: Result<T, E>,
-  resultB: Result<U, E>,
-  combiner: (a: T, b: U) => V,
+export function zipWith<
+	T,
+	U,
+	V,
+	E extends Record<string, unknown> | string | Error,
+>(
+	resultA: Result<T, E>,
+	resultB: Result<U, E>,
+	combiner: (a: T, b: U) => V,
 ): Result<V, E>;
 export function zipWith<T, U, V, E>(
-  resultA: Result<T, E>,
-  resultB: Result<U, E>,
-  combiner: (a: T, b: U) => V,
+	resultA: Result<T, E>,
+	resultB: Result<U, E>,
+	combiner: (a: T, b: U) => V,
 ): Result<V, E>;
 export function zipWith<T, U, V, E>(
-  resultA: Result<T, E>,
-  resultB: Result<U, E>,
-  combiner: (a: T, b: U) => V,
+	resultA: Result<T, E>,
+	resultB: Result<U, E>,
+	combiner: (a: T, b: U) => V,
 ): Result<V, E> {
-  validateResult(resultA, "zipWith()", "resultA");
-  validateResult(resultB, "zipWith()", "resultB");
-  validateMapper(combiner, "zipWith()", "combiner");
+	validateResult(resultA, "zipWith()", "resultA");
+	validateResult(resultB, "zipWith()", "resultB");
+	validateMapper(combiner, "zipWith()", "combiner");
 
-  if (resultA.type === OK && resultB.type === OK) {
-    return { type: OK, value: combiner(resultA.value, resultB.value) };
-  }
+	if (resultA.type === OK && resultB.type === OK) {
+		return { type: OK, value: combiner(resultA.value, resultB.value) };
+	}
 
-  if (resultA.type === ERR) {
-    return { type: ERR, error: resultA.error };
-  }
+	if (resultA.type === ERR) {
+		return { type: ERR, error: resultA.error };
+	}
 
-  if (resultB.type === ERR) {
-    return { type: ERR, error: resultB.error };
-  }
+	if (resultB.type === ERR) {
+		return { type: ERR, error: resultB.error };
+	}
 
-  throw new Error("Unreachable: both results cannot be Ok here");
+	throw new Error("Unreachable: both results cannot be Ok here");
 }
 
 /**
@@ -551,34 +568,34 @@ export function zipWith<T, U, V, E>(
  * @throws TypeError if either result is not a valid Result object or resultFn doesn't contain a function
  */
 export function apply<T, U, E extends Record<string, unknown> | string | Error>(
-  resultFn: Result<(value: T) => U, E>,
-  resultValue: Result<T, E>,
+	resultFn: Result<(value: T) => U, E>,
+	resultValue: Result<T, E>,
 ): Result<U, E>;
 export function apply<T, U, E>(
-  resultFn: Result<(value: T) => U, E>,
-  resultValue: Result<T, E>,
+	resultFn: Result<(value: T) => U, E>,
+	resultValue: Result<T, E>,
 ): Result<U, E>;
 export function apply<T, U, E>(
-  resultFn: Result<(value: T) => U, E>,
-  resultValue: Result<T, E>,
+	resultFn: Result<(value: T) => U, E>,
+	resultValue: Result<T, E>,
 ): Result<U, E> {
-  validateResult(resultFn, "apply()", "resultFn");
-  validateResult(resultValue, "apply()", "resultValue");
+	validateResult(resultFn, "apply()", "resultFn");
+	validateResult(resultValue, "apply()", "resultValue");
 
-  if (resultFn.type === ERR) {
-    return { type: ERR, error: resultFn.error };
-  }
-  if (resultValue.type === ERR) {
-    return { type: ERR, error: resultValue.error };
-  }
-  // Both are OK - additional validation that resultFn.value is actually a function
-  if (typeof resultFn.value !== "function") {
-    throw new TypeError(
-      "apply(): resultFn must contain a function value, got " +
-      typeof resultFn.value,
-    );
-  }
-  return { type: OK, value: resultFn.value(resultValue.value) };
+	if (resultFn.type === ERR) {
+		return { type: ERR, error: resultFn.error };
+	}
+	if (resultValue.type === ERR) {
+		return { type: ERR, error: resultValue.error };
+	}
+	// Both are OK - additional validation that resultFn.value is actually a function
+	if (typeof resultFn.value !== "function") {
+		throw new TypeError(
+			"apply(): resultFn must contain a function value, got " +
+				typeof resultFn.value,
+		);
+	}
+	return { type: OK, value: resultFn.value(resultValue.value) };
 }
 
 /**

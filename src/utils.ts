@@ -5,7 +5,7 @@
 export * from "@/core";
 
 // Import types and constants for utils implementations
-import { OK, ERR, type Result } from "@/types";
+import { ERR, OK, type Result } from "@/types";
 
 // =============================================================================
 // RUNTIME VALIDATION HELPERS
@@ -16,60 +16,67 @@ import { OK, ERR, type Result } from "@/types";
  * Provides helpful error messages for common mistakes.
  */
 const validateResult = <T, E>(
-  result: Result<T, E>,
-  functionName: string,
+	result: Result<T, E>,
+	functionName: string,
 ): void => {
-  if (!result || typeof result !== "object") {
-    throw new TypeError(
-      `${functionName}: First argument must be a Result object, got ${typeof result}`,
-    );
-  }
-  const resultObj = result as any;
-  if (!("type" in resultObj)) {
-    throw new TypeError(
-      `${functionName}: Result must have a 'type' property (Ok or Err)`,
-    );
-  }
-  if (resultObj.type !== OK && resultObj.type !== ERR) {
-    throw new TypeError(
-      `${functionName}: Invalid Result type '${resultObj.type}', expected '${OK}' or '${ERR}'`,
-    );
-  }
-  if (resultObj.type === OK && !("value" in resultObj)) {
-    throw new TypeError(
-      `${functionName}: Ok Result must have a 'value' property`,
-    );
-  }
-  if (resultObj.type === ERR && !("error" in resultObj)) {
-    throw new TypeError(
-      `${functionName}: Err Result must have an 'error' property`,
-    );
-  }
+	if (!result || typeof result !== "object") {
+		throw new TypeError(
+			`${functionName}: First argument must be a Result object, got ${typeof result}`,
+		);
+	}
+	const resultObj = result as unknown;
+	if (
+		typeof resultObj !== "object" ||
+		resultObj === null ||
+		!("type" in resultObj)
+	) {
+		throw new TypeError(
+			`${functionName}: Result must have a 'type' property (Ok or Err)`,
+		);
+	}
+	if (
+		(resultObj as Record<string, unknown>).type !== OK &&
+		(resultObj as Record<string, unknown>).type !== ERR
+	) {
+		throw new TypeError(
+			`${functionName}: Invalid Result type '${resultObj.type}', expected '${OK}' or '${ERR}'`,
+		);
+	}
+	if (resultObj.type === OK && !("value" in resultObj)) {
+		throw new TypeError(
+			`${functionName}: Ok Result must have a 'value' property`,
+		);
+	}
+	if (resultObj.type === ERR && !("error" in resultObj)) {
+		throw new TypeError(
+			`${functionName}: Err Result must have an 'error' property`,
+		);
+	}
 };
 
 /**
  * Validates that a callback parameter is a function (when provided).
  */
 const validateCallback = (
-  callback: unknown,
-  functionName: string,
-  parameterName: string,
-  isOptional: boolean = true,
+	callback: unknown,
+	functionName: string,
+	parameterName: string,
+	isOptional: boolean = true,
 ): void => {
-  if (callback === undefined || callback === null) {
-    if (!isOptional) {
-      throw new TypeError(
-        `${functionName}: ${parameterName} is required but was ${callback}`,
-      );
-    }
-    return; // Optional callback is fine
-  }
+	if (callback === undefined || callback === null) {
+		if (!isOptional) {
+			throw new TypeError(
+				`${functionName}: ${parameterName} is required but was ${callback}`,
+			);
+		}
+		return; // Optional callback is fine
+	}
 
-  if (typeof callback !== "function") {
-    throw new TypeError(
-      `${functionName}: ${parameterName} must be a function, got ${typeof callback}`,
-    );
-  }
+	if (typeof callback !== "function") {
+		throw new TypeError(
+			`${functionName}: ${parameterName} must be a function, got ${typeof callback}`,
+		);
+	}
 };
 
 // =============================================================================
@@ -114,30 +121,30 @@ const validateCallback = (
  * @see {@link tapErr} for side effects on error values only
  */
 export function inspect<T, E extends Record<string, unknown> | string | Error>(
-  result: Result<T, E>,
-  onOk?: (value: T) => void,
-  onErr?: (error: E) => void,
+	result: Result<T, E>,
+	onOk?: (value: T) => void,
+	onErr?: (error: E) => void,
 ): Result<T, E>;
 export function inspect<T, E>(
-  result: Result<T, E>,
-  onOk?: (value: T) => void,
-  onErr?: (error: E) => void,
+	result: Result<T, E>,
+	onOk?: (value: T) => void,
+	onErr?: (error: E) => void,
 ): Result<T, E>;
 export function inspect<T, E>(
-  result: Result<T, E>,
-  onOk?: (value: T) => void,
-  onErr?: (error: E) => void,
+	result: Result<T, E>,
+	onOk?: (value: T) => void,
+	onErr?: (error: E) => void,
 ): Result<T, E> {
-  validateResult(result, "inspect()");
-  validateCallback(onOk, "inspect()", "onOk", true);
-  validateCallback(onErr, "inspect()", "onErr", true);
+	validateResult(result, "inspect()");
+	validateCallback(onOk, "inspect()", "onOk", true);
+	validateCallback(onErr, "inspect()", "onErr", true);
 
-  if (result.type === OK && onOk) {
-    onOk(result.value);
-  } else if (result.type === ERR && onErr) {
-    onErr(result.error);
-  }
-  return result;
+	if (result.type === OK && onOk) {
+		onOk(result.value);
+	} else if (result.type === ERR && onErr) {
+		onErr(result.error);
+	}
+	return result;
 }
 
 /**
@@ -182,24 +189,24 @@ export function inspect<T, E>(
  * @see {@link inspect} for side effects on both success and error values
  */
 export function tap<T, E extends Record<string, unknown> | string | Error>(
-  result: Result<T, E>,
-  fn: (value: T) => void,
+	result: Result<T, E>,
+	fn: (value: T) => void,
 ): Result<T, E>;
 export function tap<T, E>(
-  result: Result<T, E>,
-  fn: (value: T) => void,
+	result: Result<T, E>,
+	fn: (value: T) => void,
 ): Result<T, E>;
 export function tap<T, E>(
-  result: Result<T, E>,
-  fn: (value: T) => void,
+	result: Result<T, E>,
+	fn: (value: T) => void,
 ): Result<T, E> {
-  validateResult(result, "tap()");
-  validateCallback(fn, "tap()", "fn", false);
+	validateResult(result, "tap()");
+	validateCallback(fn, "tap()", "fn", false);
 
-  if (result.type === OK) {
-    fn(result.value);
-  }
-  return result;
+	if (result.type === OK) {
+		fn(result.value);
+	}
+	return result;
 }
 
 /**
@@ -248,24 +255,24 @@ export function tap<T, E>(
  * @see {@link inspect} for side effects on both success and error values
  */
 export function tapErr<T, E extends Record<string, unknown> | string | Error>(
-  result: Result<T, E>,
-  fn: (error: E) => void,
+	result: Result<T, E>,
+	fn: (error: E) => void,
 ): Result<T, E>;
 export function tapErr<T, E>(
-  result: Result<T, E>,
-  fn: (error: E) => void,
+	result: Result<T, E>,
+	fn: (error: E) => void,
 ): Result<T, E>;
 export function tapErr<T, E>(
-  result: Result<T, E>,
-  fn: (error: E) => void,
+	result: Result<T, E>,
+	fn: (error: E) => void,
 ): Result<T, E> {
-  validateResult(result, "tapErr()");
-  validateCallback(fn, "tapErr()", "fn", false);
+	validateResult(result, "tapErr()");
+	validateCallback(fn, "tapErr()", "fn", false);
 
-  if (result.type === ERR) {
-    fn(result.error);
-  }
-  return result;
+	if (result.type === ERR) {
+		fn(result.error);
+	}
+	return result;
 }
 
 /**
@@ -307,19 +314,19 @@ export function tapErr<T, E>(
  * @see {@link toNullable} for converting Results back to nullable values
  */
 export function fromNullable<
-  T,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	E extends Record<string, unknown> | string | Error,
 >(value: T | null | undefined, errorValue: E): Result<T, E>;
 export function fromNullable<T>(
-  value: T | null | undefined,
-  errorValue?: unknown,
+	value: T | null | undefined,
+	errorValue?: unknown,
 ): Result<T, unknown>;
 export function fromNullable<T>(
-  value: T | null | undefined,
-  errorValue: unknown = "Value is null or undefined",
+	value: T | null | undefined,
+	errorValue: unknown = "Value is null or undefined",
 ): Result<T, unknown> {
-  // Note: No validation needed - this function accepts any value type by design
-  return value != null ? { type: OK, value } : { type: ERR, error: errorValue };
+	// Note: No validation needed - this function accepts any value type by design
+	return value != null ? { type: OK, value } : { type: ERR, error: errorValue };
 }
 
 /**
@@ -363,13 +370,13 @@ export function fromNullable<T>(
  * @see {@link fromNullable} for converting nullable values to Results
  */
 export function toNullable<
-  T,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	E extends Record<string, unknown> | string | Error,
 >(result: Result<T, E>): T | null;
 export function toNullable<T, E>(result: Result<T, E>): T | null;
 export function toNullable<T, E>(result: Result<T, E>): T | null {
-  validateResult(result, "toNullable()");
-  return result.type === OK ? result.value : null;
+	validateResult(result, "toNullable()");
+	return result.type === OK ? result.value : null;
 }
 
 /**

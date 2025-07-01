@@ -4,9 +4,9 @@
 // Re-export all core essentials from core module
 export * from "@/core";
 
-// Import types and constants for schema implementations
-import { OK, ERR, type Result } from "@/types";
 import { z } from "zod"; // Fixed: Removed 'type' keyword for runtime usage
+// Import types and constants for schema implementations
+import { ERR, OK, type Result } from "@/types";
 
 // =============================================================================
 // RUNTIME VALIDATION HELPERS
@@ -17,50 +17,52 @@ import { z } from "zod"; // Fixed: Removed 'type' keyword for runtime usage
  * Provides helpful error messages for common mistakes.
  */
 const validateSchema = (schema: unknown, functionName: string): void => {
-  if (!schema || typeof schema !== "object") {
-    throw new TypeError(
-      `${functionName}: Schema must be a Zod schema object, got ${typeof schema}`,
-    );
-  }
-  if (typeof (schema as any).parse !== "function") {
-    throw new TypeError(
-      `${functionName}: Schema must have a 'parse' method (Zod schema required)`,
-    );
-  }
-  if (typeof (schema as any).safeParse !== "function") {
-    throw new TypeError(
-      `${functionName}: Invalid Zod schema (missing 'safeParse' method)`,
-    );
-  }
+	if (!schema || typeof schema !== "object") {
+		throw new TypeError(
+			`${functionName}: Schema must be a Zod schema object, got ${typeof schema}`,
+		);
+	}
+	// biome-ignore lint/suspicious/noExplicitAny: Required for Zod schema validation
+	if (typeof (schema as any).parse !== "function") {
+		throw new TypeError(
+			`${functionName}: Schema must have a 'parse' method (Zod schema required)`,
+		);
+	}
+	// biome-ignore lint/suspicious/noExplicitAny: Required for Zod schema validation
+	if (typeof (schema as any).safeParse !== "function") {
+		throw new TypeError(
+			`${functionName}: Invalid Zod schema (missing 'safeParse' method)`,
+		);
+	}
 };
 
 /**
  * Validates that a mapper function parameter is actually a function.
  */
 const validateMapper = (
-  mapper: unknown,
-  functionName: string,
-  parameterName: string = "errorMapper",
+	mapper: unknown,
+	functionName: string,
+	parameterName: string = "errorMapper",
 ): void => {
-  if (typeof mapper !== "function") {
-    throw new TypeError(
-      `${functionName}: ${parameterName} must be a function, got ${typeof mapper}`,
-    );
-  }
+	if (typeof mapper !== "function") {
+		throw new TypeError(
+			`${functionName}: ${parameterName} must be a function, got ${typeof mapper}`,
+		);
+	}
 };
 
 /**
  * Validates that a JSON string parameter is a string.
  */
 const validateJsonString = (
-  jsonString: unknown,
-  functionName: string,
+	jsonString: unknown,
+	functionName: string,
 ): void => {
-  if (typeof jsonString !== "string") {
-    throw new TypeError(
-      `${functionName}: First argument must be a JSON string, got ${typeof jsonString}`,
-    );
-  }
+	if (typeof jsonString !== "string") {
+		throw new TypeError(
+			`${functionName}: First argument must be a JSON string, got ${typeof jsonString}`,
+		);
+	}
 };
 
 // =============================================================================
@@ -83,7 +85,7 @@ const validateJsonString = (
  *
  * const validUser = validate({
  *   id: 1,
- *   name: "John Doe", 
+ *   name: "John Doe",
  *   email: "john@example.com"
  * }, UserSchema);
  * // Returns: Result<User, string> → Ok({id: 1, name: "John Doe", email: "john@example.com"})
@@ -119,15 +121,15 @@ const validateJsonString = (
  * @see {@link validateAsync} for asynchronous validation
  */
 export function validate<T>(
-  data: unknown,
-  schema: z.ZodType<T>,
+	data: unknown,
+	schema: z.ZodType<T>,
 ): Result<T, string> {
-  validateSchema(schema, "validate()");
+	validateSchema(schema, "validate()");
 
-  const result = schema.safeParse(data);
-  return result.success
-    ? { type: OK, value: result.data }
-    : { type: ERR, error: `Validation failed: ${result.error.message}` };
+	const result = schema.safeParse(data);
+	return result.success
+		? { type: OK, value: result.data }
+		: { type: ERR, error: `Validation failed: ${result.error.message}` };
 }
 
 /**
@@ -181,15 +183,15 @@ export function validate<T>(
  * @see {@link validateWithAsync} for async validation with custom error mapping
  */
 export async function validateAsync<T>(
-  data: unknown,
-  schema: z.ZodType<T>,
+	data: unknown,
+	schema: z.ZodType<T>,
 ): Promise<Result<T, string>> {
-  validateSchema(schema, "validateAsync()");
+	validateSchema(schema, "validateAsync()");
 
-  const result = await schema.safeParseAsync(data);
-  return result.success
-    ? { type: OK, value: result.data }
-    : { type: ERR, error: `Validation failed: ${result.error.message}` };
+	const result = await schema.safeParseAsync(data);
+	return result.success
+		? { type: OK, value: result.data }
+		: { type: ERR, error: `Validation failed: ${result.error.message}` };
 }
 
 /**
@@ -250,30 +252,30 @@ export async function validateAsync<T>(
  * @see {@link validateWithAsync} for async version with custom errors
  */
 export function validateWith<
-  T,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	E extends Record<string, unknown> | string | Error,
 >(
-  data: unknown,
-  schema: z.ZodType<T>,
-  errorMapper: (zodError: z.ZodError) => E,
+	data: unknown,
+	schema: z.ZodType<T>,
+	errorMapper: (zodError: z.ZodError) => E,
 ): Result<T, E>;
 export function validateWith<T, E>(
-  data: unknown,
-  schema: z.ZodType<T>,
-  errorMapper: (zodError: z.ZodError) => E,
+	data: unknown,
+	schema: z.ZodType<T>,
+	errorMapper: (zodError: z.ZodError) => E,
 ): Result<T, E>;
 export function validateWith<T, E>(
-  data: unknown,
-  schema: z.ZodType<T>,
-  errorMapper: (zodError: z.ZodError) => E,
+	data: unknown,
+	schema: z.ZodType<T>,
+	errorMapper: (zodError: z.ZodError) => E,
 ): Result<T, E> {
-  validateSchema(schema, "validateWith()");
-  validateMapper(errorMapper, "validateWith()");
+	validateSchema(schema, "validateWith()");
+	validateMapper(errorMapper, "validateWith()");
 
-  const result = schema.safeParse(data);
-  return result.success
-    ? { type: OK, value: result.data }
-    : { type: ERR, error: errorMapper(result.error) };
+	const result = schema.safeParse(data);
+	return result.success
+		? { type: OK, value: result.data }
+		: { type: ERR, error: errorMapper(result.error) };
 }
 
 /**
@@ -334,30 +336,30 @@ export function validateWith<T, E>(
  * @see {@link validateAsync} for async validation with standard error messages
  */
 export function validateWithAsync<
-  T,
-  E extends Record<string, unknown> | string | Error,
+	T,
+	E extends Record<string, unknown> | string | Error,
 >(
-  data: unknown,
-  schema: z.ZodType<T>,
-  errorMapper: (zodError: z.ZodError) => E,
+	data: unknown,
+	schema: z.ZodType<T>,
+	errorMapper: (zodError: z.ZodError) => E,
 ): Promise<Result<T, E>>;
 export function validateWithAsync<T, E>(
-  data: unknown,
-  schema: z.ZodType<T>,
-  errorMapper: (zodError: z.ZodError) => E,
+	data: unknown,
+	schema: z.ZodType<T>,
+	errorMapper: (zodError: z.ZodError) => E,
 ): Promise<Result<T, E>>;
 export async function validateWithAsync<T, E>(
-  data: unknown,
-  schema: z.ZodType<T>,
-  errorMapper: (zodError: z.ZodError) => E,
+	data: unknown,
+	schema: z.ZodType<T>,
+	errorMapper: (zodError: z.ZodError) => E,
 ): Promise<Result<T, E>> {
-  validateSchema(schema, "validateWithAsync()");
-  validateMapper(errorMapper, "validateWithAsync()");
+	validateSchema(schema, "validateWithAsync()");
+	validateMapper(errorMapper, "validateWithAsync()");
 
-  const result = await schema.safeParseAsync(data);
-  return result.success
-    ? { type: OK, value: result.data }
-    : { type: ERR, error: errorMapper(result.error) };
+	const result = await schema.safeParseAsync(data);
+	return result.success
+		? { type: OK, value: result.data }
+		: { type: ERR, error: errorMapper(result.error) };
 }
 
 // =============================================================================
@@ -417,24 +419,27 @@ export async function validateWithAsync<T, E>(
  * @see {@link parseResult} for parsing JSON strings containing Result objects
  */
 export function parseJson<T>(
-  jsonString: string,
-  schema: z.ZodType<T>,
+	jsonString: string,
+	schema: z.ZodType<T>,
 ): Result<T, string> {
-  validateJsonString(jsonString, "parseJson()");
-  validateSchema(schema, "parseJson()");
+	validateJsonString(jsonString, "parseJson()");
+	validateSchema(schema, "parseJson()");
 
-  try {
-    const parsed = JSON.parse(jsonString);
-    const validationResult = schema.safeParse(parsed);
-    return validationResult.success
-      ? { type: OK, value: validationResult.data }
-      : { type: ERR, error: `Validation failed: ${validationResult.error.message}` };
-  } catch (error) {
-    return {
-      type: ERR,
-      error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
-    };
-  }
+	try {
+		const parsed = JSON.parse(jsonString);
+		const validationResult = schema.safeParse(parsed);
+		return validationResult.success
+			? { type: OK, value: validationResult.data }
+			: {
+					type: ERR,
+					error: `Validation failed: ${validationResult.error.message}`,
+				};
+	} catch (error) {
+		return {
+			type: ERR,
+			error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
+		};
+	}
 }
 
 /**
@@ -470,24 +475,27 @@ export function parseJson<T>(
  * @see {@link parseResultAsync} for parsing JSON strings containing Result objects
  */
 export async function parseJsonAsync<T>(
-  jsonString: string,
-  schema: z.ZodType<T>,
+	jsonString: string,
+	schema: z.ZodType<T>,
 ): Promise<Result<T, string>> {
-  validateJsonString(jsonString, "parseJsonAsync()");
-  validateSchema(schema, "parseJsonAsync()");
+	validateJsonString(jsonString, "parseJsonAsync()");
+	validateSchema(schema, "parseJsonAsync()");
 
-  try {
-    const parsed = JSON.parse(jsonString);
-    const validationResult = await schema.safeParseAsync(parsed);
-    return validationResult.success
-      ? { type: OK, value: validationResult.data }
-      : { type: ERR, error: `Validation failed: ${validationResult.error.message}` };
-  } catch (error) {
-    return {
-      type: ERR,
-      error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
-    };
-  }
+	try {
+		const parsed = JSON.parse(jsonString);
+		const validationResult = await schema.safeParseAsync(parsed);
+		return validationResult.success
+			? { type: OK, value: validationResult.data }
+			: {
+					type: ERR,
+					error: `Validation failed: ${validationResult.error.message}`,
+				};
+	} catch (error) {
+		return {
+			type: ERR,
+			error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
+		};
+	}
 }
 
 // =============================================================================
@@ -534,16 +542,16 @@ export async function parseJsonAsync<T>(
  * @see {@link parseResult} for parsing JSON strings containing Result objects
  */
 export const resultSchema = <T, E>(
-  valueSchema: z.ZodType<T>,
-  errorSchema: z.ZodType<E>,
+	valueSchema: z.ZodType<T>,
+	errorSchema: z.ZodType<E>,
 ) => {
-  validateSchema(valueSchema, "resultSchema()");
-  validateSchema(errorSchema, "resultSchema()");
+	validateSchema(valueSchema, "resultSchema()");
+	validateSchema(errorSchema, "resultSchema()");
 
-  return z.discriminatedUnion("type", [
-    z.object({ type: z.literal(OK), value: valueSchema }),
-    z.object({ type: z.literal(ERR), error: errorSchema }),
-  ]);
+	return z.discriminatedUnion("type", [
+		z.object({ type: z.literal(OK), value: valueSchema }),
+		z.object({ type: z.literal(ERR), error: errorSchema }),
+	]);
 };
 
 /**
@@ -575,8 +583,8 @@ export const resultSchema = <T, E>(
  * @see {@link structuredErrorSchema} for structured error objects
  */
 export const stringErrorSchema = <T>(valueSchema: z.ZodType<T>) => {
-  validateSchema(valueSchema, "stringErrorSchema()");
-  return resultSchema(valueSchema, z.string());
+	validateSchema(valueSchema, "stringErrorSchema()");
+	return resultSchema(valueSchema, z.string());
 };
 
 /**
@@ -608,8 +616,8 @@ export const stringErrorSchema = <T>(valueSchema: z.ZodType<T>) => {
  * @see {@link stringErrorSchema} for string error messages
  */
 export const numberErrorSchema = <T>(valueSchema: z.ZodType<T>) => {
-  validateSchema(valueSchema, "numberErrorSchema()");
-  return resultSchema(valueSchema, z.number());
+	validateSchema(valueSchema, "numberErrorSchema()");
+	return resultSchema(valueSchema, z.number());
 };
 
 /**
@@ -644,14 +652,14 @@ export const numberErrorSchema = <T>(valueSchema: z.ZodType<T>) => {
  * @see {@link stringErrorSchema} for simple string errors
  */
 export const structuredErrorSchema = <T>(valueSchema: z.ZodType<T>) => {
-  validateSchema(valueSchema, "structuredErrorSchema()");
-  return resultSchema(
-    valueSchema,
-    z.object({
-      message: z.string(),
-      code: z.number().optional(),
-    }),
-  );
+	validateSchema(valueSchema, "structuredErrorSchema()");
+	return resultSchema(
+		valueSchema,
+		z.object({
+			message: z.string(),
+			code: z.number().optional(),
+		}),
+	);
 };
 
 // =============================================================================
@@ -668,7 +676,7 @@ export const structuredErrorSchema = <T>(valueSchema: z.ZodType<T>) => {
  * // Deserialize API responses containing Result objects
  * const userResultJson = '{"type": "Ok", "value": {"id": 1, "name": "John"}}';
  * const UserSchema = z.object({ id: z.number(), name: z.string() });
- * 
+ *
  * const result = parseResult(userResultJson, UserSchema, z.string());
  * // Returns: Result<Result<User, string>, string>
  *
@@ -702,63 +710,63 @@ export const structuredErrorSchema = <T>(valueSchema: z.ZodType<T>) => {
  * @see {@link parseJson} for parsing regular JSON with validation
  */
 export function parseResult<T, E>(
-  jsonString: string,
-  valueSchema: z.ZodType<T>,
-  errorSchema: z.ZodType<E>,
+	jsonString: string,
+	valueSchema: z.ZodType<T>,
+	errorSchema: z.ZodType<E>,
 ): Result<Result<T, E>, string> {
-  validateJsonString(jsonString, "parseResult()");
-  validateSchema(valueSchema, "parseResult()");
-  validateSchema(errorSchema, "parseResult()");
+	validateJsonString(jsonString, "parseResult()");
+	validateSchema(valueSchema, "parseResult()");
+	validateSchema(errorSchema, "parseResult()");
 
-  try {
-    const parsed = JSON.parse(jsonString);
+	try {
+		const parsed = JSON.parse(jsonString);
 
-    if (!parsed || typeof parsed !== "object" || !("type" in parsed)) {
-      return {
-        type: ERR,
-        error: "Invalid Result structure: missing 'type' field",
-      };
-    }
+		if (!parsed || typeof parsed !== "object" || !("type" in parsed)) {
+			return {
+				type: ERR,
+				error: "Invalid Result structure: missing 'type' field",
+			};
+		}
 
-    if (parsed.type === OK) {
-      if (!("value" in parsed)) {
-        return { type: ERR, error: "Invalid Ok Result: missing 'value' field" };
-      }
-      const valueValidation = valueSchema.safeParse(parsed.value);
-      if (!valueValidation.success) {
-        return {
-          type: ERR,
-          error: `Invalid Ok value: ${valueValidation.error.message}`,
-        };
-      }
-      return { type: OK, value: { type: OK, value: valueValidation.data } };
-    } else if (parsed.type === ERR) {
-      if (!("error" in parsed)) {
-        return {
-          type: ERR,
-          error: "Invalid Err Result: missing 'error' field",
-        };
-      }
-      const errorValidation = errorSchema.safeParse(parsed.error);
-      if (!errorValidation.success) {
-        return {
-          type: ERR,
-          error: `Invalid Err value: ${errorValidation.error.message}`,
-        };
-      }
-      return { type: OK, value: { type: ERR, error: errorValidation.data } };
-    } else {
-      return {
-        type: ERR,
-        error: `Invalid Result type: expected '${OK}' or '${ERR}', got '${parsed.type}'`,
-      };
-    }
-  } catch (error) {
-    return {
-      type: ERR,
-      error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
-    };
-  }
+		if (parsed.type === OK) {
+			if (!("value" in parsed)) {
+				return { type: ERR, error: "Invalid Ok Result: missing 'value' field" };
+			}
+			const valueValidation = valueSchema.safeParse(parsed.value);
+			if (!valueValidation.success) {
+				return {
+					type: ERR,
+					error: `Invalid Ok value: ${valueValidation.error.message}`,
+				};
+			}
+			return { type: OK, value: { type: OK, value: valueValidation.data } };
+		} else if (parsed.type === ERR) {
+			if (!("error" in parsed)) {
+				return {
+					type: ERR,
+					error: "Invalid Err Result: missing 'error' field",
+				};
+			}
+			const errorValidation = errorSchema.safeParse(parsed.error);
+			if (!errorValidation.success) {
+				return {
+					type: ERR,
+					error: `Invalid Err value: ${errorValidation.error.message}`,
+				};
+			}
+			return { type: OK, value: { type: ERR, error: errorValidation.data } };
+		} else {
+			return {
+				type: ERR,
+				error: `Invalid Result type: expected '${OK}' or '${ERR}', got '${parsed.type}'`,
+			};
+		}
+	} catch (error) {
+		return {
+			type: ERR,
+			error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
+		};
+	}
 }
 
 /**
@@ -792,63 +800,63 @@ export function parseResult<T, E>(
  * @see {@link parseJsonAsync} for parsing regular JSON with async validation
  */
 export async function parseResultAsync<T, E>(
-  jsonString: string,
-  valueSchema: z.ZodType<T>,
-  errorSchema: z.ZodType<E>,
+	jsonString: string,
+	valueSchema: z.ZodType<T>,
+	errorSchema: z.ZodType<E>,
 ): Promise<Result<Result<T, E>, string>> {
-  validateJsonString(jsonString, "parseResultAsync()");
-  validateSchema(valueSchema, "parseResultAsync()");
-  validateSchema(errorSchema, "parseResultAsync()");
+	validateJsonString(jsonString, "parseResultAsync()");
+	validateSchema(valueSchema, "parseResultAsync()");
+	validateSchema(errorSchema, "parseResultAsync()");
 
-  try {
-    const parsed = JSON.parse(jsonString);
+	try {
+		const parsed = JSON.parse(jsonString);
 
-    if (!parsed || typeof parsed !== "object" || !("type" in parsed)) {
-      return {
-        type: ERR,
-        error: "Invalid Result structure: missing 'type' field",
-      };
-    }
+		if (!parsed || typeof parsed !== "object" || !("type" in parsed)) {
+			return {
+				type: ERR,
+				error: "Invalid Result structure: missing 'type' field",
+			};
+		}
 
-    if (parsed.type === OK) {
-      if (!("value" in parsed)) {
-        return { type: ERR, error: "Invalid Ok Result: missing 'value' field" };
-      }
-      const valueValidation = await valueSchema.safeParseAsync(parsed.value);
-      if (!valueValidation.success) {
-        return {
-          type: ERR,
-          error: `Invalid Ok value: ${valueValidation.error.message}`,
-        };
-      }
-      return { type: OK, value: { type: OK, value: valueValidation.data } };
-    } else if (parsed.type === ERR) {
-      if (!("error" in parsed)) {
-        return {
-          type: ERR,
-          error: "Invalid Err Result: missing 'error' field",
-        };
-      }
-      const errorValidation = await errorSchema.safeParseAsync(parsed.error);
-      if (!errorValidation.success) {
-        return {
-          type: ERR,
-          error: `Invalid Err value: ${errorValidation.error.message}`,
-        };
-      }
-      return { type: OK, value: { type: ERR, error: errorValidation.data } };
-    } else {
-      return {
-        type: ERR,
-        error: `Invalid Result type: expected '${OK}' or '${ERR}', got '${parsed.type}'`,
-      };
-    }
-  } catch (error) {
-    return {
-      type: ERR,
-      error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
-    };
-  }
+		if (parsed.type === OK) {
+			if (!("value" in parsed)) {
+				return { type: ERR, error: "Invalid Ok Result: missing 'value' field" };
+			}
+			const valueValidation = await valueSchema.safeParseAsync(parsed.value);
+			if (!valueValidation.success) {
+				return {
+					type: ERR,
+					error: `Invalid Ok value: ${valueValidation.error.message}`,
+				};
+			}
+			return { type: OK, value: { type: OK, value: valueValidation.data } };
+		} else if (parsed.type === ERR) {
+			if (!("error" in parsed)) {
+				return {
+					type: ERR,
+					error: "Invalid Err Result: missing 'error' field",
+				};
+			}
+			const errorValidation = await errorSchema.safeParseAsync(parsed.error);
+			if (!errorValidation.success) {
+				return {
+					type: ERR,
+					error: `Invalid Err value: ${errorValidation.error.message}`,
+				};
+			}
+			return { type: OK, value: { type: ERR, error: errorValidation.data } };
+		} else {
+			return {
+				type: ERR,
+				error: `Invalid Result type: expected '${OK}' or '${ERR}', got '${parsed.type}'`,
+			};
+		}
+	} catch (error) {
+		return {
+			type: ERR,
+			error: `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
+		};
+	}
 }
 
 /**

@@ -7,13 +7,13 @@ export const ERR = "Err" as const;
 
 // Core type definitions
 export interface Ok<T> {
-  type: typeof OK;
-  value: T;
+	type: typeof OK;
+	value: T;
 }
 
 export interface Err<E> {
-  type: typeof ERR;
-  error: E;
+	type: typeof ERR;
+	error: E;
 }
 
 export type Result<T, E = Error> = Ok<T> | Err<E>;

@@ -1,115 +1,118 @@
 {
-  "name": "result-ts",
-  "version": "0.7.1-beta",
-  "license": "MIT",
-  "description": "The performance-first Result library with comprehensive utilities and zero overhead.",
-  "author": {
-    "name": "Gregory Laurent",
-    "email": "gregory.m.laurent@gmail.com",
-    "url": "https://your-website.com"
-  },
-  "homepage": "https://github.com/greglaurent/result-ts#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/greglaurent/result-ts.git"
-  },
-  "bugs": {
-    "url": "https://github.com/greglaurent/result-ts/issues"
-  },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "sideEffects": false,
-  "engines": {
-    "node": ">=16.0.0"
-  },
-  "files": [
-    "dist/**/*",
-    "README.md",
-    "LICENSE"
-  ],
-  "scripts": {
-    "bench": "pnpm build && vitest bench --config vitest.config.ts",
-    "bench:run": "pnpm build && vitest bench --run --config vitest.config.ts",
-    "bench:ci": "pnpm build && vitest bench --run --reporter=json --outputFile=benchmark-results.json --config vitest.config.ts",
-    "build": "pnpm clean && tsc && tsc-alias",
-    "build:watch": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
-    "clean": "rm -rf dist",
-    "dev": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
-    "lint": "echo \"Linting coming soon\" && exit 0",
-    "prepublishOnly": "pnpm build",
-    "test": "vitest --config vitest.config.ts",
-    "test:bundle": "pnpm build && vitest run tests/bundle-size.test.ts",
-    "test:run": "vitest run",
-    "test:watch": "vitest --watch",
-    "test:ui": "vitest --",
-    "typecheck": "tsc --noEmit"
-  },
-  "keywords": [
-    "result",
-    "error-handling",
-    "typescript",
-    "performance",
-    "functional-programming",
-    "rust-style",
-    "type-safe",
-    "zero-overhead",
-    "async",
-    "validation",
-    "zod",
-    "fp",
-    "monad",
-    "either"
-  ],
-  "packageManager": "pnpm@10.12.4",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
-    },
-    "./iter": {
-      "types": "./dist/iter.d.ts",
-      "import": "./dist/iter.js",
-      "require": "./dist/iter.js"
-    },
-    "./batch": {
-      "types": "./dist/batch.d.ts",
-      "import": "./dist/batch.js",
-      "require": "./dist/batch.js"
-    },
-    "./utils": {
-      "types": "./dist/utils.d.ts",
-      "import": "./dist/utils.js",
-      "require": "./dist/utils.js"
-    },
-    "./patterns": {
-      "types": "./dist/patterns.d.ts",
-      "import": "./dist/patterns.js",
-      "require": "./dist/patterns.js"
-    },
-    "./schema": {
-      "types": "./dist/schema.d.ts",
-      "import": "./dist/schema.js",
-      "require": "./dist/schema.js"
-    }
-  },
-  "peerDependencies": {
-    "zod": "^3.25.67"
-  },
-  "peerDependenciesMeta": {
-    "zod": {
-      "optional": true
-    }
-  },
-  "devDependencies": {
-    "@vitest/ui": "^3.2.4",
-    "concurrently": "^9.0.1",
-    "esbuild": "^0.25.5",
-    "perf_hooks": "^0.0.1",
-    "tsc-alias": "^1.8.10",
-    "typescript": "^5.8.3",
-    "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4",
-    "zod": "^3.25.67"
-  }
+	"name": "result-ts",
+	"version": "0.8.0-beta",
+	"license": "MIT",
+	"description": "The performance-first Result library with comprehensive utilities and zero overhead.",
+	"author": {
+		"name": "Gregory Laurent",
+		"email": "gregory.m.laurent@gmail.com",
+		"url": "https://your-website.com"
+	},
+	"homepage": "https://github.com/greglaurent/result-ts#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/greglaurent/result-ts.git"
+	},
+	"bugs": {
+		"url": "https://github.com/greglaurent/result-ts/issues"
+	},
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"sideEffects": false,
+	"engines": {
+		"node": ">=16.0.0"
+	},
+	"files": [
+		"dist/**/*",
+		"README.md",
+		"LICENSE"
+	],
+	"scripts": {
+		"bench": "pnpm build && vitest bench --config vitest.config.ts",
+		"bench:run": "pnpm build && vitest bench --run --config vitest.config.ts",
+		"bench:ci": "pnpm build && vitest bench --run --reporter=json --outputFile=benchmark-results.json --config vitest.config.ts",
+		"build": "pnpm clean && tsc && tsc-alias",
+		"build:watch": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
+		"clean": "rm -rf dist",
+		"dev": "concurrently \"tsc --watch\" \"tsc-alias --watch\"",
+		"lint": "pnpm exec biome lint --write",
+		"lint:format": "pnpm exec biome format --write",
+		"lint:all": "pnpm exec biome check --write",
+		"prepublishOnly": "pnpm build",
+		"test": "vitest --config vitest.config.ts",
+		"test:bundle": "pnpm build && vitest run tests/bundle-size.test.ts",
+		"test:run": "vitest run",
+		"test:watch": "vitest --watch",
+		"test:ui": "vitest --",
+		"typecheck": "tsc --noEmit"
+	},
+	"keywords": [
+		"result",
+		"error-handling",
+		"typescript",
+		"performance",
+		"functional-programming",
+		"rust-style",
+		"type-safe",
+		"zero-overhead",
+		"async",
+		"validation",
+		"zod",
+		"fp",
+		"monad",
+		"either"
+	],
+	"packageManager": "pnpm@10.12.4",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.js"
+		},
+		"./iter": {
+			"types": "./dist/iter.d.ts",
+			"import": "./dist/iter.js",
+			"require": "./dist/iter.js"
+		},
+		"./batch": {
+			"types": "./dist/batch.d.ts",
+			"import": "./dist/batch.js",
+			"require": "./dist/batch.js"
+		},
+		"./utils": {
+			"types": "./dist/utils.d.ts",
+			"import": "./dist/utils.js",
+			"require": "./dist/utils.js"
+		},
+		"./patterns": {
+			"types": "./dist/patterns.d.ts",
+			"import": "./dist/patterns.js",
+			"require": "./dist/patterns.js"
+		},
+		"./schema": {
+			"types": "./dist/schema.d.ts",
+			"import": "./dist/schema.js",
+			"require": "./dist/schema.js"
+		}
+	},
+	"peerDependencies": {
+		"zod": "^3.25.67"
+	},
+	"peerDependenciesMeta": {
+		"zod": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.0.6",
+		"@vitest/ui": "^3.2.4",
+		"concurrently": "^9.0.1",
+		"esbuild": "^0.25.5",
+		"perf_hooks": "^0.0.1",
+		"tsc-alias": "^1.8.10",
+		"typescript": "^5.8.3",
+		"vite-tsconfig-paths": "^5.1.4",
+		"vitest": "^3.2.4",
+		"zod": "^3.25.67"
+	}
 }
