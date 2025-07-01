@@ -313,10 +313,35 @@ export const parseResult = <T, E>(
   valueSchema: z.ZodType<T>,
   errorSchema: z.ZodType<E>,
 ): Result<Result<T, E>, string> => {
-  const schema = resultSchema(valueSchema, errorSchema);
   try {
     const parsed = JSON.parse(jsonString);
-    return validate(parsed, schema) as Result<Result<T, E>, string>;
+
+    // First validate it's a Result-like structure
+    if (!parsed || typeof parsed !== 'object' || !('type' in parsed)) {
+      return err("Invalid Result structure: missing 'type' field");
+    }
+
+    if (parsed.type === OK_VALUE) {
+      if (!('value' in parsed)) {
+        return err("Invalid Ok Result: missing 'value' field");
+      }
+      const valueValidation = valueSchema.safeParse(parsed.value);
+      if (!valueValidation.success) {
+        return err(`Invalid Ok value: ${valueValidation.error.message}`);
+      }
+      return ok({ type: OK_VALUE, value: valueValidation.data });
+    } else if (parsed.type === ERR_VALUE) {
+      if (!('error' in parsed)) {
+        return err("Invalid Err Result: missing 'error' field");
+      }
+      const errorValidation = errorSchema.safeParse(parsed.error);
+      if (!errorValidation.success) {
+        return err(`Invalid Err value: ${errorValidation.error.message}`);
+      }
+      return ok({ type: ERR_VALUE, error: errorValidation.data });
+    } else {
+      return err(`Invalid Result type: expected '${OK_VALUE}' or '${ERR_VALUE}', got '${parsed.type}'`);
+    }
   } catch (error) {
     return err(
       `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -347,10 +372,35 @@ export const parseResultAsync = async <T, E>(
   valueSchema: z.ZodType<T>,
   errorSchema: z.ZodType<E>,
 ): Promise<Result<Result<T, E>, string>> => {
-  const schema = resultSchema(valueSchema, errorSchema);
   try {
     const parsed = JSON.parse(jsonString);
-    return (await validateAsync(parsed, schema)) as Result<Result<T, E>, string>;
+
+    // First validate it's a Result-like structure
+    if (!parsed || typeof parsed !== 'object' || !('type' in parsed)) {
+      return err("Invalid Result structure: missing 'type' field");
+    }
+
+    if (parsed.type === OK_VALUE) {
+      if (!('value' in parsed)) {
+        return err("Invalid Ok Result: missing 'value' field");
+      }
+      const valueValidation = await valueSchema.safeParseAsync(parsed.value);
+      if (!valueValidation.success) {
+        return err(`Invalid Ok value: ${valueValidation.error.message}`);
+      }
+      return ok({ type: OK_VALUE, value: valueValidation.data });
+    } else if (parsed.type === ERR_VALUE) {
+      if (!('error' in parsed)) {
+        return err("Invalid Err Result: missing 'error' field");
+      }
+      const errorValidation = await errorSchema.safeParseAsync(parsed.error);
+      if (!errorValidation.success) {
+        return err(`Invalid Err value: ${errorValidation.error.message}`);
+      }
+      return ok({ type: ERR_VALUE, error: errorValidation.data });
+    } else {
+      return err(`Invalid Result type: expected '${OK_VALUE}' or '${ERR_VALUE}', got '${parsed.type}'`);
+    }
   } catch (error) {
     return err(
       `Invalid JSON: ${error instanceof Error ? error.message : "Unknown error"}`,

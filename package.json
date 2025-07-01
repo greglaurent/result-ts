@@ -38,7 +38,11 @@
     "docs:debug": "pnpm build && typedoc --logLevel Verbose",
     "lint": "echo \"Linting coming soon\" && exit 0",
     "prepublishOnly": "pnpm build",
-    "test": "echo \"Tests coming soon\" && exit 0",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:size": "pnpm build && vitest run tests/bundle-size.test.ts",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -64,20 +68,25 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
+    "./minimal": {
+      "types": "./dist/minimal.d.ts",
+      "import": "./dist/minimal.js",
+      "require": "./dist/minimal.js"
+    },
+    "./iter": {
+      "types": "./dist/iter.d.ts",
+      "import": "./dist/iter.js",
+      "require": "./dist/iter.js"
+    },
+    "./batch": {
+      "types": "./dist/batch.d.ts",
+      "import": "./dist/batch.js",
+      "require": "./dist/batch.js"
+    },
     "./core": {
       "types": "./dist/core.d.ts",
       "import": "./dist/core.js",
       "require": "./dist/core.js"
-    },
-    "./validation": {
-      "types": "./dist/validation.d.ts",
-      "import": "./dist/validation.js",
-      "require": "./dist/validation.js"
-    },
-    "./base": {
-      "types": "./dist/base.d.ts",
-      "import": "./dist/base.js",
-      "require": "./dist/base.js"
     }
   },
   "peerDependencies": {
@@ -89,10 +98,15 @@
     }
   },
   "devDependencies": {
+    "@vitest/ui": "^3.2.4",
     "concurrently": "^9.0.1",
+    "esbuild": "^0.25.5",
+    "perf_hooks": "^0.0.1",
     "tsc-alias": "^1.8.10",
     "typedoc": "^0.28.5",
     "typescript": "^5.8.3",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4",
     "zod": "^3.25.67"
   }
 }

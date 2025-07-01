@@ -455,10 +455,38 @@ export const andThenAsync = async <T, U, E>(
  * @param operations - Array of functions that transform values to new Results
  * @returns Final Result or first error encountered
  */
-export const pipe = <T, E>(
+// Type-safe overloads for common cases
+export function pipe<T, U, E>(
+  initialResult: Result<T, E>,
+  op1: (value: T) => Result<U, E>
+): Result<U, E>;
+
+export function pipe<T, U, V, E>(
+  initialResult: Result<T, E>,
+  op1: (value: T) => Result<U, E>,
+  op2: (value: U) => Result<V, E>
+): Result<V, E>;
+
+export function pipe<T, U, V, W, E>(
+  initialResult: Result<T, E>,
+  op1: (value: T) => Result<U, E>,
+  op2: (value: U) => Result<V, E>,
+  op3: (value: V) => Result<W, E>
+): Result<W, E>;
+
+export function pipe<T, U, V, W, X, E>(
+  initialResult: Result<T, E>,
+  op1: (value: T) => Result<U, E>,
+  op2: (value: U) => Result<V, E>,
+  op3: (value: V) => Result<W, E>,
+  op4: (value: W) => Result<X, E>
+): Result<X, E>;
+
+// Fallback for longer chains
+export function pipe<T, E>(
   initialResult: Result<T, E>,
   ...operations: Array<(value: any) => Result<any, E>>
-) => {
+): Result<any, E> {
   let current = initialResult;
 
   for (const operation of operations) {
@@ -467,7 +495,7 @@ export const pipe = <T, E>(
   }
 
   return current;
-};
+}
 
 // =============================================================================
 // BATCH OPERATIONS (Individual Exports)
@@ -882,8 +910,15 @@ export const safe = <T, E>(
       if (result.type === ERR) {
         try {
           gen.return(undefined as T);
-        } catch {
-          // Just ignore cleanup errors
+        } catch (cleanupError) {
+          // Log cleanup errors in development
+          try {
+            if ((globalThis as any).process?.env?.NODE_ENV === 'development') {
+              console.warn('Generator cleanup failed:', cleanupError);
+            }
+          } catch {
+            // Ignore if globalThis.process doesn't exist
+          }
         }
         return { type: ERR, error: result.error };
       }
@@ -893,8 +928,15 @@ export const safe = <T, E>(
   } catch (error) {
     try {
       gen.return(undefined as T);
-    } catch {
-      // intentionally ignore errors
+    } catch (cleanupError) {
+      // Log cleanup errors in development
+      try {
+        if ((globalThis as any).process?.env?.NODE_ENV === 'development') {
+          console.warn('Generator cleanup failed:', cleanupError);
+        }
+      } catch {
+        // Ignore if globalThis.process doesn't exist
+      }
     }
     throw error;
   }
@@ -926,8 +968,15 @@ export const safeAsync = async <T, E>(
       if (result.type === ERR) {
         try {
           await gen.return(undefined as T);
-        } catch {
-          // Just ignore cleanup errors
+        } catch (cleanupError) {
+          // Log cleanup errors in development
+          try {
+            if ((globalThis as any).process?.env?.NODE_ENV === 'development') {
+              console.warn('Generator cleanup failed:', cleanupError);
+            }
+          } catch {
+            // Ignore if globalThis.process doesn't exist
+          }
         }
         return { type: ERR, error: result.error };
       }
@@ -937,8 +986,15 @@ export const safeAsync = async <T, E>(
   } catch (error) {
     try {
       await gen.return(undefined as T);
-    } catch {
-      // Just ignore cleanup errors
+    } catch (cleanupError) {
+      // Log cleanup errors in development
+      try {
+        if ((globalThis as any).process?.env?.NODE_ENV === 'development') {
+          console.warn('Generator cleanup failed:', cleanupError);
+        }
+      } catch {
+        // Ignore if globalThis.process doesn't exist
+      }
     }
     throw error;
   }
@@ -994,11 +1050,7 @@ export const zip = <T, U, E>(
     return { type: ERR, error: resultA.error };
   }
 
-  if (resultB.type === ERR) {
-    return { type: ERR, error: resultB.error };
-  }
-
-  throw new Error("Unreachable: both results cannot be Ok here");
+  return resultA as never;
 };
 
 /**
@@ -1038,11 +1090,8 @@ export const apply = <T, U, E>(
     return { type: ERR, error: resultFn.error };
   }
 
-  if (resultValue.type === ERR) {
-    return { type: ERR, error: resultValue.error };
-  }
-
-  throw new Error("Unreachable: both results cannot be Ok here");
+  // resultValue must be ERR due to discriminated union
+  return resultValue as never;
 };
 
 // =============================================================================
