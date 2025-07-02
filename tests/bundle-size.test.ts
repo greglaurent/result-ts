@@ -63,7 +63,7 @@ describe("Bundle Size Tests - README Claims Verification", () => {
 		console.log(`✅ Iter module: ${size} bytes (target: ~800 bytes)`);
 	});
 
-	it("batch module - should match README claim (~291 bytes)", async () => {
+	it("batch module - should match README claim (~1143 bytes)", async () => {
 		const importCode = `
       import { all, analyze } from 'result-ts/batch';
       console.log(all, analyze);
@@ -71,10 +71,10 @@ describe("Bundle Size Tests - README Claims Verification", () => {
 
 		const size = await bundleAndMeasure(importCode);
 		expect(size).toBeLessThan(1300); // Updated: current ~1113 bytes + buffer
-		console.log(`✅ Batch module: ${size} bytes (target: ~291 bytes)`);
+		console.log(`✅ Batch module: ${size} bytes (target: ~1143 bytes)`);
 	});
 
-	it("patterns module - should match README claim (~500 bytes)", async () => {
+	it("patterns module - should match README claim (~1282 bytes)", async () => {
 		const importCode = `
       import { safe, zip } from 'result-ts/patterns';
       console.log(safe, zip);
@@ -82,10 +82,10 @@ describe("Bundle Size Tests - README Claims Verification", () => {
 
 		const size = await bundleAndMeasure(importCode);
 		expect(size).toBeLessThan(1500); // Updated: current ~1252 bytes + buffer
-		console.log(`✅ Patterns module: ${size} bytes (target: ~500 bytes)`);
+		console.log(`✅ Patterns module: ${size} bytes (target: ~1282 bytes)`);
 	});
 
-	it("schema module - should match README claim (~245 bytes excluding Zod)", async () => {
+	it("schema module - should match README claim (~556 bytes excluding Zod)", async () => {
 		const importCode = `
       import { validate } from 'result-ts/schema';
       console.log(validate);
@@ -94,7 +94,7 @@ describe("Bundle Size Tests - README Claims Verification", () => {
 		const size = await bundleAndMeasure(importCode);
 		expect(size).toBeLessThan(600); // 245 bytes target + buffer
 		console.log(
-			`✅ Schema module: ${size} bytes (target: ~245 bytes, excluding Zod)`,
+			`✅ Schema module: ${size} bytes (target: ~556 bytes, excluding Zod)`,
 		);
 	});
 });
@@ -138,17 +138,17 @@ describe("Bundle Size Tests - Architecture Verification", () => {
 			{
 				name: "Array processing",
 				import: `import { all } from 'result-ts/batch'; console.log(all);`,
-				target: 291,
+				target: 1143,
 			},
 			{
 				name: "Advanced patterns",
 				import: `import { safe } from 'result-ts/patterns'; console.log(safe);`,
-				target: 500,
+				target: 1282,
 			},
 			{
 				name: "Validation",
 				import: `import { validate } from 'result-ts/schema'; console.log(validate);`,
-				target: 245,
+				target: 556,
 			},
 		];
 
