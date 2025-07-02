@@ -757,9 +757,9 @@ Start with core essentials and add layers as needed:
 | ---------------------------------------------- | ---------------------- | ----------------- | ------------------------------------- |
 | **Core** (`result-ts`)                         | 11 essential functions | ~55-331 bytes     | Basic Result handling, safe execution |
 | **+ Data Transform** (`result-ts/iter`)        | +4 functions           | ~808 bytes total  | Value mapping, operation chaining     |
-| **+ Array Processing** (`result-ts/batch`)     | +10 functions          | ~965 bytes total  | Bulk operations, statistics           |
+| **+ Array Processing** (`result-ts/batch`)     | +10 functions          | ~1143 bytes total | Bulk operations, statistics           |
 | **+ Debugging** (`result-ts/utils`)            | +5 functions           | Similar to core   | Side effects, nullable conversion     |
-| **+ Advanced Patterns** (`result-ts/patterns`) | +7 functions           | ~1004 bytes total | Generators, applicative patterns      |
+| **+ Advanced Patterns** (`result-ts/patterns`) | +7 functions           | ~1282 bytes total | Generators, applicative patterns      |
 | **+ Validation** (`result-ts/schema`)          | +12 functions          | ~556 bytes\*      | Runtime validation with Zod           |
 
 \*Excludes Zod dependency (~13KB gzipped)
@@ -780,12 +780,12 @@ import { ok, err, handle, match } from "result-ts";
 import { ok, err, handle, match } from "result-ts";
 import { map, andThen } from "result-ts/iter";
 
-// Array processing - 965 bytes
+// Array processing - 1143 bytes
 import { ok, err, handle, match } from "result-ts";
 import { map, andThen } from "result-ts/iter";
 import { all, partition } from "result-ts/batch";
 
-// Advanced patterns - 1004 bytes
+// Advanced patterns - 1282 bytes
 import { ok, err, handle, match } from "result-ts";
 import { map, andThen } from "result-ts/iter";
 import { all, partition } from "result-ts/batch";
@@ -802,7 +802,7 @@ for unexpected errors (programming bugs, out-of-memory).
 **Q: How does this affect bundle size?**
 
 A: result-ts is designed for tree-shaking. Import only what you need -
-basic usage adds ~120 bytes.
+basic usage adds ~107 bytes, full features under 1.3KB.
 
 **Q: Can I mix result-ts with async/await?**
 
