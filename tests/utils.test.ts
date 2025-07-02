@@ -744,19 +744,64 @@ describe("Utils Module - Debugging and Conversion Utilities", () => {
 			}
 		});
 
-		it("should handle side effects that modify objects", () => {
+		it("should prevent side effects from mutating original objects", () => {
 			const obj = { count: 0 };
 			const result = ok(obj);
 
 			const incrementer = (value: { count: number }) => {
-				value.count++;
+				value.count++; // This mutation should NOT affect the original
 			};
 
 			tap(result, incrementer);
 
 			if (isOk(result)) {
-				expect(result.value.count).toBe(1); // Object was mutated
+				expect(result.value.count).toBe(0); // Original object unchanged
 			}
+		});
+
+		it("should prevent mutations in inspect callbacks", () => {
+			const user = { name: "John", settings: { theme: "dark" } };
+			const result = ok(user);
+
+			const mutator = (value: typeof user) => {
+				value.name = "Jane";
+				value.settings.theme = "light";
+			};
+
+			inspect(result, mutator, undefined);
+
+			if (isOk(result)) {
+				expect(result.value.name).toBe("John"); // Original unchanged
+				expect(result.value.settings.theme).toBe("dark"); // Nested object unchanged
+			}
+		});
+
+		it("should prevent mutations in tapErr callbacks", () => {
+			const errorObj = { code: 500, details: { retries: 0 } };
+			const result = err(errorObj);
+
+			const errorMutator = (error: typeof errorObj) => {
+				error.code = 404;
+				error.details.retries++;
+			};
+
+			tapErr(result, errorMutator);
+
+			if (isErr(result)) {
+				expect(result.error.code).toBe(500); // Original unchanged
+				expect(result.error.details.retries).toBe(0); // Nested unchanged
+			}
+		});
+
+		it("should handle primitives efficiently (no cloning needed)", () => {
+			const numberResult = ok(42);
+			const stringResult = ok("hello");
+			const boolResult = ok(true);
+
+			// These should work without issues since primitives don't need cloning
+			tap(numberResult, (n) => expect(n).toBe(42));
+			tap(stringResult, (s) => expect(s).toBe("hello"));
+			tap(boolResult, (b) => expect(b).toBe(true));
 		});
 
 		it("should handle custom error values properly", () => {
