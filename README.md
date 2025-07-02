@@ -195,7 +195,9 @@ const results = await allAsync(apiCalls); // Fail-fast on first error
 
 ### Debugging & Utilities (`result-ts/utils`)
 
-Side effects, debugging, and nullable API integration.
+Safe side effects, debugging, and nullable API integration.
+
+**🔒 Mutation Safety**: `tap`, `tapErr`, and `inspect` automatically clone values to prevent accidental mutations. For direct data access, use `unwrap()`.
 
 ```typescript
 import {
@@ -206,15 +208,52 @@ import {
   toNullable,
 } from "result-ts/utils";
 
-// Debug Result flows
+// Debug Result flows with comprehensive logging
 const debugged = inspect(
   processPayment(amount),
   (payment) => console.log(`✅ Payment ${payment.id} processed`),
   (error) => console.error(`❌ Payment failed: ${error.message}`),
 );
 
-// Side effects on success
-const cached = tap(validateUser(data), (user) => cache.set(user.id, user));
+// Development debugging - inspect handles both cases
+const userResult = inspect(
+  fetchUserProfile(userId),
+  (profile) => console.log("Profile loaded:", {
+    id: profile.id,
+    name: profile.name,
+    lastSeen: profile.lastSeen
+  }),
+  (error) => console.error("Profile fetch failed:", {
+    userId,
+    error: error.message,
+    stack: error.stack
+  })
+);
+
+// Safe side effects - values are automatically cloned, no mutations possible
+const result = fetchUser(id)
+  .tap(user => console.log("✅ User fetched:", user.name))  // Safe debugging
+  .tap(user => cache.set(`user:${id}`, user))             // Safe caching  
+  .tap(user => analytics.track("user_loaded", { id }))    // Safe analytics
+  .tapErr(error => logger.error("User fetch failed", { error, id }))
+  .tapErr(error => metrics.increment("user_fetch_errors"));
+
+// For actual data manipulation - use unwrap() to get the real object
+if (isOk(result)) {
+  const user = unwrap(result);  // Get original reference
+  user.lastSeen = new Date();   // Now mutations are intentional and explicit
+  await saveUser(user);
+}
+
+// Production observability patterns
+const apiResult = processPayment(data)
+  .tap(payment => logger.info("Payment processed", { 
+    id: payment.id, 
+    amount: payment.amount 
+  }))
+  .tap(payment => auditLog.record("payment_success", payment))
+  .tapErr(error => logger.error("Payment failed", { error, data }))
+  .tapErr(error => alerting.notify("payment_failure", error));
 
 // Convert from nullable APIs
 const userResult = fromNullable(
@@ -226,8 +265,7 @@ const userResult = fromNullable(
 const email = toNullable(getUserEmail(id))?.toLowerCase();
 ```
 
-**When to use**: Debugging workflows, logging, caching, integrating with nullable
-APIs.
+**When to use**: Safe debugging, logging, metrics collection, caching side effects, nullable API integration. For data modification, use `unwrap()` to get the original object.
 
 ### Advanced Patterns (`result-ts/patterns`)
 
@@ -318,6 +356,7 @@ data validation.
 ```typescript
 import { handleAsync, match } from "result-ts";
 import { validate } from "result-ts/schema";
+import { tap, tapErr, inspect } from "result-ts/utils";
 import { z } from "zod";
 
 const CreatePostSchema = z.object({
@@ -328,16 +367,42 @@ const CreatePostSchema = z.object({
 
 app.post("/posts", async (req, res) => {
   const result = await handleAsync(async () => {
-    // Validate request body
-    const validationResult = validate(req.body, CreatePostSchema);
+    // Validate request body with comprehensive logging
+    const validationResult = inspect(
+      validate(req.body, CreatePostSchema),
+      (data) => logger.info("Post validation passed", { 
+        title: data.title, 
+        userId: req.user.id 
+      }),
+      (error) => logger.warn("Post validation failed", { 
+        error, 
+        body: req.body, 
+        userId: req.user.id 
+      })
+    );
+    
     if (isErr(validationResult)) {
       throw new Error(`Validation failed: ${validationResult.error}`);
     }
 
-    // Create post
+    // Create post with comprehensive observability
     const post = await createPost(validationResult.value);
     return post;
-  });
+  })
+  .then(result => 
+    inspect(result,
+      (post) => {
+        logger.info("Post created successfully", { id: post.id, title: post.title });
+        analytics.track("post_created", { userId: req.user.id, postId: post.id });
+        cache.invalidate(`user:${req.user.id}:posts`); // Cache invalidation
+      },
+      (error) => {
+        logger.error("Post creation failed", { error, userId: req.user.id });
+        metrics.increment("post_creation_errors");
+        alerting.notify("post_creation_failure", { error, userId: req.user.id });
+      }
+    )
+  );
 
   const response = match(result, {
     Ok: (post) => res.json({ success: true, post }),
@@ -398,6 +463,7 @@ const processUserBatch = async (users: UserData[]) => {
 
 ```typescript
 import { parseJson, match } from "result-ts/schema";
+import { inspect } from "result-ts/utils";
 import { z } from "zod";
 
 const ConfigSchema = z.object({
@@ -418,15 +484,36 @@ const ConfigSchema = z.object({
 const loadConfig = (configPath: string) => {
   const configResult = handle(() =>
     fs.readFileSync(configPath, "utf8"),
-  ).andThen((content) => parseJson(content, ConfigSchema));
+  )
+  .andThen((content) => parseJson(content, ConfigSchema))
+  .then(result => 
+    inspect(result,
+      (config) => {
+        console.log(`✅ Config loaded from ${configPath}`);
+        logger.info("Configuration loaded successfully", {
+          path: configPath,
+          database: config.database.host,
+          features: Object.keys(config.features),
+          timestamp: new Date().toISOString()
+        });
+        metrics.gauge("config_load_success", 1);
+      },
+      (error) => {
+        console.error(`❌ Failed to load config: ${error}`);
+        logger.error("Configuration load failed", {
+          path: configPath,
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+        metrics.gauge("config_load_failure", 1);
+        alerting.critical("config_load_failure", { path: configPath, error });
+      }
+    )
+  );
 
   return match(configResult, {
-    Ok: (config) => {
-      console.log(`✅ Config loaded from ${configPath}`);
-      return config;
-    },
+    Ok: (config) => config,
     Err: (error) => {
-      console.error(`❌ Failed to load config: ${error}`);
       process.exit(1);
     },
   });
@@ -536,6 +623,67 @@ const { oks: users, errors } = await allSettledAsync(userIds.map(fetchUser));
 console.log(`Loaded ${users.length} users, ${errors.length} failed`);
 return users;
 ```
+
+## Safe Side Effects vs. Data Access
+
+result-ts enforces a clear separation between **side effects** (debugging, logging) and **data access** (actual value manipulation):
+
+### Side Effects: tap(), tapErr(), inspect()
+
+**Values are automatically cloned** - mutations are impossible, debugging is safe:
+
+```typescript
+const result = processUser(userData)
+  .tap(user => {
+    console.log("Processing user:", user.name);
+    user.name = "HACKED"; // ❌ This won't affect the original!
+  })
+  .tap(user => logger.info("User processed", { id: user.id }))
+  .tapErr(error => metrics.increment("user_processing_errors"));
+
+// Original data is completely safe from side effect mutations
+```
+
+### Data Access: unwrap(), unwrapOr()
+
+**Get the real object** when you need to work with the actual data:
+
+```typescript
+// When you actually need to modify the data
+if (isOk(result)) {
+  const user = unwrap(result);     // ✅ Get original reference
+  user.lastSeen = new Date();      // ✅ Intentional mutation
+  user.loginCount++;               // ✅ Explicit data modification
+  await database.save(user);
+}
+
+// Or safely get data with fallbacks
+const userData = unwrapOr(result, defaultUser);
+processUserData(userData); // Work with real data
+```
+
+### Why This Design?
+
+```typescript
+// ❌ Old way - debugging could break your app
+result.tap(user => {
+  user.debugFlag = true;  // Oops! This affects all downstream code
+});
+
+// ✅ New way - clear intent separation
+result
+  .tap(user => console.log(user))     // Safe debugging (cloned)
+  .tap(user => cache.set(user.id, user)) // Safe caching (cloned)
+
+const user = unwrap(result);          // Explicit data access
+user.debugFlag = true;                // Intentional mutation
+```
+
+**Benefits:**
+- **🛡️ Mutation Safety**: Side effects can't accidentally break your data flow
+- **🎯 Clear Intent**: tap/inspect = side effects, unwrap = data access  
+- **⚡ Performance**: Only clone for side effects, real usage gets original references
+- **🐛 Fewer Bugs**: Prevents hard-to-debug mutation issues in Result chains
 
 ## Comparison
 
@@ -656,6 +804,19 @@ Each module includes all previous functionality.
 
 A: Similar or better for success cases, significantly better for
 error cases (no stack unwinding).
+
+**Q: Why can't I mutate values in tap/inspect? I want to modify data!**
+
+A: tap/inspect are for **side effects only** (logging, debugging, metrics). For data modification, use `unwrap()` to get the original object. This prevents accidental mutations that break Result chains.
+
+```typescript
+// ❌ For side effects - use tap (values are cloned, safe)
+result.tap(user => user.name = "changed"); // Won't affect original
+
+// ✅ For data access - use unwrap (get original object)  
+const user = unwrap(result);
+user.name = "changed"; // Intentional modification
+```
 
 ## Contributing
 

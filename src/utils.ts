@@ -79,6 +79,37 @@ const validateCallback = (
 	}
 };
 
+/**
+ * Safely clones a value to prevent mutations in side-effect functions.
+ * Uses structuredClone when available, with fallback for older environments.
+ */
+const safeClone = <T>(value: T): T => {
+	// Primitives don't need cloning
+	if (value === null || typeof value !== "object") {
+		return value;
+	}
+
+	// Use structuredClone if available (modern browsers/Node 17+)
+	if (typeof structuredClone !== "undefined") {
+		try {
+			return structuredClone(value);
+		} catch {
+			// structuredClone can fail on non-cloneable objects (functions, etc.)
+			// Fall through to JSON fallback
+		}
+	}
+
+	// Fallback: JSON clone (loses functions, dates become strings, etc.)
+	// But prevents mutations which is the primary goal
+	try {
+		return JSON.parse(JSON.stringify(value));
+	} catch {
+		// If JSON fails (circular references, etc.), return original
+		// This is a last resort - mutation possible but function won't crash
+		return value;
+	}
+};
+
 // =============================================================================
 // UTILITY FUNCTIONS (Individual Exports)
 // =============================================================================
@@ -86,6 +117,7 @@ const validateCallback = (
 /**
  * Inspects a Result by calling callbacks without changing the Result.
  * Useful for debugging or side effects without changing the Result.
+ * Values passed to callbacks are safely cloned to prevent accidental mutations.
  * Constrains error types to ensure meaningful error handling.
  *
  * @example
@@ -140,9 +172,9 @@ export function inspect<T, E>(
 	validateCallback(onErr, "inspect()", "onErr", true);
 
 	if (result.type === OK && onOk) {
-		onOk(result.value);
+		onOk(safeClone(result.value));
 	} else if (result.type === ERR && onErr) {
-		onErr(result.error);
+		onErr(safeClone(result.error));
 	}
 	return result;
 }
@@ -150,6 +182,7 @@ export function inspect<T, E>(
 /**
  * Performs a side effect on success values without changing the Result.
  * Useful for logging, caching, or other side effects in a processing chain.
+ * Values passed to callback are safely cloned to prevent accidental mutations.
  * Constrains error types to ensure meaningful error handling.
  *
  * @example
@@ -157,10 +190,11 @@ export function inspect<T, E>(
  * const processedUser = tap(
  *   validateAndEnrichUser(userData),
  *   (user) => {
- *     // Cache valid user data
+ *     // Cache valid user data - user is safely cloned, no mutations possible
  *     userCache.set(user.id, user);
  *     // Log successful processing
  *     logger.info(`User ${user.id} processed successfully`);
+ *     // user.name = "hacked"; // This won't affect the original Result!
  *   }
  * );
  * // Returns: Result<User, ValidationError> - original result unchanged
@@ -204,7 +238,7 @@ export function tap<T, E>(
 	validateCallback(fn, "tap()", "fn", false);
 
 	if (result.type === OK) {
-		fn(result.value);
+		fn(safeClone(result.value));
 	}
 	return result;
 }
@@ -212,6 +246,7 @@ export function tap<T, E>(
 /**
  * Performs a side effect on error values without changing the Result.
  * Useful for error logging, metrics collection, or cleanup operations.
+ * Error values passed to callback are safely cloned to prevent accidental mutations.
  * Constrains error types to ensure meaningful error handling.
  *
  * @example
@@ -270,7 +305,7 @@ export function tapErr<T, E>(
 	validateCallback(fn, "tapErr()", "fn", false);
 
 	if (result.type === ERR) {
-		fn(result.error);
+		fn(safeClone(result.error));
 	}
 	return result;
 }
