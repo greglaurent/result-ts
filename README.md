@@ -9,7 +9,7 @@
 
 </center>
 
-**This is an pre-release library.**
+**This is an unreleased, pre-release library.**
 
 The performance-first Result library for TypeScript with comprehensive utilities
 and zero overhead.
